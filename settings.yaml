@@ -1,0 +1,30 @@
+IroncladDecoratorService:
+  Db:
+    LogsConnString:
+      settings-key: IroncladDecoratorService-LogsConnString
+      types: [AzureTableStorage]
+  LifetimeSettings:
+    types: [Json]
+  IroncladSettings:
+    IroncladIdp:
+      types: [Json]
+    AuthClient:
+      types: [Json]
+    IntrospectionClient:
+      types: [Json]
+SlackNotifications:
+  AzureQueue:
+    ConnectionString:
+      settings-key: SlackNotificationsConnString
+      types: [AzureTableStorage]
+    QueueName:
+      settings-key: SlackQueueName
+ClientAccountClient:
+  ServiceUrl:
+    settings-key: ClientAccountServiceUrl
+SessionServiceClient:
+  ServiceUrl:
+    settings-key: SessionServiceUrl
+MonitoringServiceClient:
+  MonitoringServiceUrl:
+    settings-key: MonitoringServiceUrl
