@@ -1,4 +1,5 @@
-﻿using IdentityModel.Client;
+﻿using System;
+using IdentityModel.Client;
 
 namespace Lykke.Service.IroncladDecorator.UserSession
 {
@@ -15,6 +16,8 @@ namespace Lykke.Service.IroncladDecorator.UserSession
             RefreshToken = tokenResponse.RefreshToken;
             TokenType = tokenResponse.TokenType;
             ExpiresIn = tokenResponse.ExpiresIn;
+            //TODO Refactor to factory.
+            ExpiresAt = DateTimeOffset.UtcNow.AddSeconds(tokenResponse.ExpiresIn);
         }
 
         public string IdentityToken { get; set; }
@@ -22,5 +25,6 @@ namespace Lykke.Service.IroncladDecorator.UserSession
         public string RefreshToken { get; set; }
         public string TokenType { get; set; }
         public int ExpiresIn { get; set; }
+        public DateTimeOffset ExpiresAt { get; set; }
     }
 }

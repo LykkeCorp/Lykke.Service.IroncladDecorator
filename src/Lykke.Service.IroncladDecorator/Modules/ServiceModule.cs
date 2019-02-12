@@ -1,5 +1,6 @@
 ﻿using Autofac;
 using Lykke.Service.ClientAccount.Client;
+using Lykke.Service.IroncladDecorator.LykkeSession;
 using Lykke.Service.IroncladDecorator.Settings;
 using Lykke.Service.IroncladDecorator.UserSession;
 using Lykke.Service.Session.Client;
@@ -19,14 +20,17 @@ namespace Lykke.Service.IroncladDecorator.Modules
         protected override void Load(ContainerBuilder builder)
         {
             builder.Register(c => _appSettings.CurrentValue.IroncladDecoratorService.IroncladSettings);
+            builder.Register(c => _appSettings.CurrentValue.IroncladDecoratorService.LifetimeSettings);
 
             builder.RegisterType<UserSessionManager>()
                 .WithParameter(new TypedParameter(typeof(LifetimeSettings),
                     _appSettings.CurrentValue.IroncladDecoratorService.LifetimeSettings))
                 .As<IUserSessionManager>()
-                .SingleInstance();
+                .SingleInstance();            
+            
+            builder.RegisterType<LykkeSessionManager>().As<ILykkeSessionManager>().SingleInstance();
 
-            builder.RegisterType<UserSessionRepository>().As<IUserSessionRepository>().SingleInstance();
+            RegisterRepositories(builder);
 
             RegisterClients(builder);
         }
@@ -35,6 +39,12 @@ namespace Lykke.Service.IroncladDecorator.Modules
         {
             builder.RegisterClientSessionClient(_appSettings.CurrentValue.SessionServiceClient);
             builder.RegisterLykkeServiceClient(_appSettings.CurrentValue.ClientAccountClient.ServiceUrl);
+        }
+
+        private void RegisterRepositories(ContainerBuilder builder)
+        {
+            builder.RegisterType<UserSessionRepository>().As<IUserSessionRepository>().SingleInstance();
+            builder.RegisterType<LykkeSessionRepository>().As<ILykkeSessionRepository>().SingleInstance();
         }
     }
 }
