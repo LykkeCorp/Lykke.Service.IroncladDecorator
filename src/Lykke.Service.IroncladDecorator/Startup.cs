@@ -93,10 +93,11 @@ namespace Lykke.Service.IroncladDecorator
         {
             app.UseCors(options =>
             {
-                //todo: set restricted origins
+                //todo: set restrictions
                 options.AllowAnyOrigin();
-                options.WithMethods("GET");
-                options.WithHeaders("authorization");
+                options.AllowAnyHeader();
+                options.AllowCredentials();
+                options.AllowAnyMethod();
             });
 
             app.UseLykkeConfiguration(options =>
