@@ -50,11 +50,11 @@ namespace Lykke.Service.IroncladDecorator.Controllers
         public async Task<IActionResult> GetLykkewalletToken()
         {
             //todo: extract somewhere
-            HttpContext.Request.Headers.TryGetValue("Authorization", out var headers);
-            var authorizationHeader = headers.ToArray()[0];
+            var authorizationHeader = GetAuthorizationHeader();
             if (authorizationHeader == null)
                 return Unauthorized();
-            var bearer = authorizationHeader.Split(' ')[1];
+            var bearer = authorizationHeader.Replace("Bearer ", "");
+
             var httpClient = _httpClientFactory.CreateClient();
 
             var introspectionResponse = await IntrospectToken(httpClient, bearer);
@@ -74,6 +74,13 @@ namespace Lykke.Service.IroncladDecorator.Controllers
                 authResult.AuthId,
                 clientAccount.NotificationsId
             });
+        }
+
+        private string GetAuthorizationHeader()
+        {
+            HttpContext.Request.Headers.TryGetValue("Authorization", out var headers);
+            var authorizationHeader = headers.FirstOrDefault();
+            return authorizationHeader;
         }
 
         [HttpGet("~/getlykkewallettokenmobile")]
