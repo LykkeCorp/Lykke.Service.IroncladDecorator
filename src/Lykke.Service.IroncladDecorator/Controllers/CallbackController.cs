@@ -9,6 +9,7 @@ using IdentityModel;
 using IdentityModel.Client;
 using Lykke.Common.Log;
 using Lykke.Service.IroncladDecorator.Extensions;
+using Lykke.Service.IroncladDecorator.LykkeSession;
 using Lykke.Service.IroncladDecorator.Settings;
 using Lykke.Service.IroncladDecorator.UserSession;
 using Lykke.Service.Session.Client;
@@ -29,6 +30,7 @@ namespace Lykke.Service.IroncladDecorator.Controllers
         private readonly IHttpClientFactory _httpClientFactory;
         private readonly ILog _log;
         private readonly IUserSessionManager _userSessionManager;
+        private readonly ILykkeSessionManager _lykkeSessionManager;
 
         public CallbackController(
             IUserSessionManager userSessionManager,
@@ -36,8 +38,8 @@ namespace Lykke.Service.IroncladDecorator.Controllers
             IClientSessionsClient clientSessionsClient,
             IHttpClientFactory httpClientFactory,
             IDiscoveryCache discoveryCache,
-            IroncladSettings ironcladSettings
-        )
+            IroncladSettings ironcladSettings, 
+            ILykkeSessionManager lykkeSessionManager)
         {
             _clientSessionsClient = clientSessionsClient;
             _userSessionManager = userSessionManager;
@@ -45,6 +47,7 @@ namespace Lykke.Service.IroncladDecorator.Controllers
             _httpClientFactory = httpClientFactory;
             _discoveryCache = discoveryCache;
             _ironcladSettings = ironcladSettings;
+            _lykkeSessionManager = lykkeSessionManager;
         }
 
         [HttpGet]
@@ -67,13 +70,16 @@ namespace Lykke.Service.IroncladDecorator.Controllers
             var authCode = HttpContext.Request.Query["code"];
 
             var tokens = await GetTokens(authCode);
-            SaveTokens(userSession, tokens);
 
             var userId = GetUserId(tokens.IdentityToken);
 
             var authResult = await _clientSessionsClient.Authenticate(userId, "hobbit");
             SaveAuthResult(userSession, authResult);
+            
+            SaveTokensToUserSession(userSession, tokens);
 
+            await SaveLykkeSession(authResult.SessionToken, tokens);
+            
             await _userSessionManager.SetUserSession(userSession);
 
             var redirectUri = BuildFragmentRedirectUri(query, tokens);
@@ -127,13 +133,19 @@ namespace Lykke.Service.IroncladDecorator.Controllers
             userSession.Set("LykkeClientId", clientSession.ClientId);
         }
 
+        private Task SaveLykkeSession(string oldLykkeToken, TokenData tokens)
+        {
+            var lykkeSession = new LykkeSession.LykkeSession(oldLykkeToken, tokens);
+            return _lykkeSessionManager.SetAsync(lykkeSession);
+        }
+
         private string GetAuthorizeQueryAsync(UserSession.UserSession session)
         {
             _log.Info("Start getting original authorize query string.");
             return session?.Get<string>("AuthorizeQueryString");
         }
 
-        private void SaveTokens(UserSession.UserSession session, TokenData tokens)
+        private void SaveTokensToUserSession(UserSession.UserSession session, TokenData tokens)
         {
             _log.Info("Start saving tokens. TokenResponse:{TokenResponse}", tokens);
             session.Set("IroncladTokenResponse", tokens);

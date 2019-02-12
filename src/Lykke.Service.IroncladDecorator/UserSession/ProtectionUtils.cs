@@ -1,11 +1,10 @@
-﻿using System;
-using System.Security.Cryptography;
+﻿using System.Security.Cryptography;
 using Microsoft.AspNetCore.DataProtection;
 using Newtonsoft.Json;
 
 namespace Lykke.Service.IroncladDecorator.UserSession
 {
-    public static class ProtectionUtils
+    internal static class ProtectionUtils
     {
         public static string SerializeAndProtect<T>(T value, IDataProtector dataProtector)
         {
@@ -26,7 +25,6 @@ namespace Lykke.Service.IroncladDecorator.UserSession
             {
                 return default;
             }
-
         }
     }
 }

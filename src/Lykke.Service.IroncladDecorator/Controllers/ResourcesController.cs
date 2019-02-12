@@ -5,11 +5,12 @@ using System.Threading.Tasks;
 using IdentityModel;
 using IdentityModel.Client;
 using Lykke.Service.ClientAccount.Client;
+using Lykke.Service.IroncladDecorator.Extensions;
+using Lykke.Service.IroncladDecorator.LykkeSession;
 using Lykke.Service.IroncladDecorator.Settings;
 using Lykke.Service.IroncladDecorator.UserSession;
 using Lykke.Service.Session.Client;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.Extensions.Logging;
 
 namespace Lykke.Service.IroncladDecorator.Controllers
 {
@@ -20,8 +21,9 @@ namespace Lykke.Service.IroncladDecorator.Controllers
         private readonly IClientSessionsClient _clientSessionsClient;
         private readonly IDiscoveryCache _discoveryCache;
         private readonly IHttpClientFactory _httpClientFactory;
-        private readonly ILogger<ResourcesController> _logger;
         private readonly IroncladSettings _ironcladSettings;
+        private readonly LifetimeSettings _lifetimeSettings;
+        private readonly ILykkeSessionManager _lykkeSessionManager;
         private readonly IUserSessionManager _userSessionManager;
         private readonly IUserSessionRepository _userSessionRepository;
 
@@ -32,12 +34,13 @@ namespace Lykke.Service.IroncladDecorator.Controllers
             IHttpClientFactory httpClientFactory,
             IDiscoveryCache discoveryCache,
             IClientSessionsClient clientSessionsClient,
-            ILogger<ResourcesController> logger,
-            IroncladSettings ironcladSettings
-        )
+            IroncladSettings ironcladSettings,
+            LifetimeSettings lifetimeSettings,
+            ILykkeSessionManager lykkeSessionManager)
         {
-            _logger = logger;
             _ironcladSettings = ironcladSettings;
+            _lifetimeSettings = lifetimeSettings;
+            _lykkeSessionManager = lykkeSessionManager;
             _userSessionRepository = userSessionRepository;
             _clientAccountClient = clientAccountClient;
             _userSessionManager = userSessionManager;
@@ -49,15 +52,14 @@ namespace Lykke.Service.IroncladDecorator.Controllers
         [HttpGet("~/getlykkewallettoken")]
         public async Task<IActionResult> GetLykkewalletToken()
         {
-            //todo: extract somewhere
-            var authorizationHeader = GetAuthorizationHeader();
-            if (authorizationHeader == null)
+            var bearerToken = HttpContext.GetBearerTokenFromAuthorizationHeader();
+
+            if (bearerToken == null)
                 return Unauthorized();
-            var bearer = authorizationHeader.Replace("Bearer ", "");
 
             var httpClient = _httpClientFactory.CreateClient();
 
-            var introspectionResponse = await IntrospectToken(httpClient, bearer);
+            var introspectionResponse = await IntrospectToken(httpClient, bearerToken);
 
             if (!introspectionResponse.IsActive)
                 return Unauthorized();
@@ -76,19 +78,49 @@ namespace Lykke.Service.IroncladDecorator.Controllers
             });
         }
 
-        private string GetAuthorizationHeader()
-        {
-            HttpContext.Request.Headers.TryGetValue("Authorization", out var headers);
-            var authorizationHeader = headers.FirstOrDefault();
-            return authorizationHeader;
-        }
-
         [HttpGet("~/getlykkewallettokenmobile")]
         public async Task<IActionResult> GetLykkeWalletTokenMobile()
         {
-            var userId = _userSessionManager.GetIdFromCookie();
+            var sessionId = _userSessionManager.GetIdFromCookie();
 
-            return await GetTokenBasedOnCookie(userId);
+            return await GetTokenBasedOnCookie(sessionId);
+        }
+
+        
+        [HttpGet("~/token/kyc")]
+        public async Task<IActionResult> GetKycToken()
+        {
+            var oldLykkeToken = HttpContext.GetBearerTokenFromAuthorizationHeader();
+
+            if (string.IsNullOrWhiteSpace(oldLykkeToken))
+            {
+                return Unauthorized();
+            }
+
+            var lykkeSession = await _lykkeSessionManager.GetActiveAsync(oldLykkeToken);
+            
+            if (lykkeSession == null)
+            {
+                return Unauthorized();
+            }
+
+            var tokens = lykkeSession.IroncladTokens;
+
+            if (tokens == null)
+            {
+                return Unauthorized();
+            }
+
+            if (IsExpired(tokens.ExpiresAt)) 
+                tokens = await RefreshIroncladTokens(tokens.RefreshToken);
+
+            lykkeSession.IroncladTokens = tokens;
+
+            var newLykkeSession = new LykkeSession.LykkeSession(oldLykkeToken, tokens);
+
+            await _lykkeSessionManager.SetAsync(newLykkeSession);
+
+            return new JsonResult(new {token = tokens.AccessToken});
         }
 
         private async Task<IntrospectionResponse> IntrospectToken(HttpClient httpClient, string bearer)
@@ -111,11 +143,11 @@ namespace Lykke.Service.IroncladDecorator.Controllers
             return introspectionResponse;
         }
 
-        private async Task<IActionResult> GetTokenBasedOnCookie(string userId)
+        private async Task<IActionResult> GetTokenBasedOnCookie(string sessionId)
         {
-            if (userId == null) return Unauthorized();
+            if (sessionId == null) return Unauthorized();
 
-            var session = await _userSessionRepository.GetAsync(userId);
+            var session = await _userSessionRepository.GetAsync(sessionId);
             var oldLykkeToken = session.Get<string>("OldLykkeToken");
             if (oldLykkeToken == null) return Unauthorized();
 
@@ -133,34 +165,35 @@ namespace Lykke.Service.IroncladDecorator.Controllers
             });
         }
 
-        [HttpGet("~/token/kyc")]
-        public async Task<IActionResult> GetKycToken()
+        private bool IsExpired(DateTimeOffset expiresAt)
         {
-            var userSession = await _userSessionManager.GetUserSession();
+            return expiresAt.Subtract(_lifetimeSettings.IroncladAccessTokenTimeBeforeRefresh) <= DateTimeOffset.UtcNow;
+        }
 
-            if (userSession == null)
+        private async Task<TokenData> RefreshIroncladTokens(string ironcladRefreshToken)
+        {
+            var discoveryResponse = await _discoveryCache.GetAsync();
+
+            if (discoveryResponse.IsError)
             {
-                _logger.LogWarning("No user session.");
-                return Unauthorized();
+                _discoveryCache.Refresh();
+                throw new Exception(discoveryResponse.Error);
             }
-
-            var tokens = userSession.Get<TokenData>("IroncladTokenResponse");
-
-            var oldLykkeToken = userSession.Get<string>("OldLykkeToken");
-
-            if (tokens == null)
+            
+            var httpClient = _httpClientFactory.CreateClient();
+            
+            var tokenResponse = await httpClient.RequestRefreshTokenAsync(new RefreshTokenRequest
             {
-                _logger.LogWarning("No tokens in user session.");
-                return Unauthorized();
-            }
+                Address = discoveryResponse.TokenEndpoint,
+                RefreshToken = ironcladRefreshToken,
+                ClientId = _ironcladSettings.AuthClient.ClientId,
+                ClientSecret = _ironcladSettings.AuthClient.ClientSecret
+            });
 
-            if (string.IsNullOrWhiteSpace(oldLykkeToken))
-            {
-                _logger.LogWarning("No old lykke token in user session.");
-                return Unauthorized();
-            }
+            if (tokenResponse.IsError)
+                throw new Exception(discoveryResponse.Error);
 
-            return new JsonResult(new {Token = tokens.AccessToken});
+            return new TokenData(tokenResponse);
         }
     }
 }
