@@ -72,9 +72,9 @@ namespace Lykke.Service.IroncladDecorator.Controllers
 
             return new JsonResult(new
             {
-                Token = authResult.SessionToken,
+                token = authResult.SessionToken,
                 authResult.AuthId,
-                clientAccount.NotificationsId
+                notificationsId = clientAccount.NotificationsId
             });
         }
 
@@ -159,9 +159,9 @@ namespace Lykke.Service.IroncladDecorator.Controllers
 
             return new JsonResult(new
             {
-                Token = oldLykkeToken,
-                AuthId = authId,
-                clientAccount.NotificationsId
+                token = oldLykkeToken,
+                authId = authId,
+                notificationsId = clientAccount.NotificationsId
             });
         }
 
