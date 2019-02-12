@@ -12,7 +12,7 @@ namespace Lykke.Service.IroncladDecorator.UserSession
     public class UserSessionManager : IUserSessionManager
     {
         private const string UserSessionCookieProtector = nameof(UserSessionCookieProtector);
-        private const string CookieName = "UserSession";
+        private const string CookieName = ".AspNetCore.ServerCookie";
         private readonly ISystemClock _clock;
         private readonly IDataProtector _dataProtector;
         private readonly IHostingEnvironment _hostingEnvironment;
