@@ -21,7 +21,7 @@ namespace Lykke.Service.IroncladDecorator.Controllers
 {
     [ApiController]
     [Route("callback")]
-    public class CallbackController : ControllerBase
+    public class CallbackController : Controller
     {
         private const string SessinNotExistMessage = "User session does not exist.";
         private readonly IClientSessionsClient _clientSessionsClient;
@@ -52,7 +52,7 @@ namespace Lykke.Service.IroncladDecorator.Controllers
 
         [HttpGet]
         [Route("signin-oidc")]
-        public async Task<ActionResult> SigninCallback()
+        public async Task<IActionResult> SigninCallback()
         {
             _log.Info("Start getting user session.");
             var userSession = await _userSessionManager.GetUserSession();
@@ -65,7 +65,16 @@ namespace Lykke.Service.IroncladDecorator.Controllers
 
             var query = GetAuthorizeQueryAsync(userSession);
 
-            if (string.IsNullOrEmpty(query)) return BadRequest("Original query string is not saved.");
+            if (string.IsNullOrEmpty(query))
+            {
+                var platform = userSession.Get<string>("SigninPlatform");
+                var returnUrl = userSession.Get<string>("SigninReturnUrl");
+
+                if (!string.IsNullOrWhiteSpace(platform) || !string.IsNullOrWhiteSpace(returnUrl))
+                    return Afterlogin(platform, returnUrl);
+
+                return BadRequest("Original query string is not saved.");
+            }
 
             var authCode = HttpContext.Request.Query["code"];
 
@@ -86,6 +95,19 @@ namespace Lykke.Service.IroncladDecorator.Controllers
 
             _log.Info("Redirecting to client app redirect uri. RedirectUri:{RedirectUri}", redirectUri);
             return Redirect(redirectUri);
+        }
+        
+        private IActionResult Afterlogin(string platform = null, string returnUrl = null)
+        {
+            switch (platform?.ToLower())
+            {
+                case "android":
+                    return RedirectToAction("GetLykkeWalletTokenMobile", "Resources");
+                case "ios":
+                    return View("AfterLogin.ios");
+                default:
+                    return Redirect(returnUrl ?? "/");
+            }
         }
 
         private static string GetUserId(string idToken)
