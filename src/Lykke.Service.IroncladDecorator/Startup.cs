@@ -91,6 +91,14 @@ namespace Lykke.Service.IroncladDecorator
         [UsedImplicitly]
         public void Configure(IApplicationBuilder app, IHostingEnvironment env)
         {
+            app.UseCors(options =>
+            {
+                //todo: set restricted origins
+                options.AllowAnyOrigin();
+                options.WithMethods("GET");
+                options.WithHeaders("authorization");
+            });
+
             app.UseLykkeConfiguration(options =>
             {
                 options.SwaggerOptions = _swaggerOptions;
