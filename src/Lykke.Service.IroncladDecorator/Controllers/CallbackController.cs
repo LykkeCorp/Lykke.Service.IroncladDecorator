@@ -65,17 +65,6 @@ namespace Lykke.Service.IroncladDecorator.Controllers
 
             var query = GetAuthorizeQueryAsync(userSession);
 
-            if (string.IsNullOrEmpty(query))
-            {
-                var platform = userSession.Get<string>("SigninPlatform");
-                var returnUrl = userSession.Get<string>("SigninReturnUrl");
-
-                if (!string.IsNullOrWhiteSpace(platform) || !string.IsNullOrWhiteSpace(returnUrl))
-                    return Afterlogin(platform, returnUrl);
-
-                return BadRequest("Original query string is not saved.");
-            }
-
             var authCode = HttpContext.Request.Query["code"];
 
             var tokens = await GetTokens(authCode);
@@ -96,18 +85,23 @@ namespace Lykke.Service.IroncladDecorator.Controllers
             _log.Info("Redirecting to client app redirect uri. RedirectUri:{RedirectUri}", redirectUri);
             return Redirect(redirectUri);
         }
-        
-        private IActionResult Afterlogin(string platform = null, string returnUrl = null)
+
+        [HttpGet]
+        [Route("signin-oidc-android")]
+        public IActionResult SigninCallbackAndroid()
         {
-            switch (platform?.ToLower())
-            {
-                case "android":
-                    return RedirectToAction("GetLykkeWalletTokenMobile", "Resources");
-                case "ios":
-                    return View("AfterLogin.ios");
-                default:
-                    return Redirect(returnUrl ?? "/");
-            }
+            //todo: extract tokens
+            //todo: authenticate user to server cookie
+            return RedirectToAction("GetLykkeWalletTokenMobile", "Resources");
+        }
+
+        [HttpGet]
+        [Route("signin-oidc-ios")]
+        public IActionResult SigninCallbackIos()
+        {
+            //todo: extract tokens
+            //todo: authenticate user to server cookie
+            return View("AfterLogin.ios");
         }
 
         private static string GetUserId(string idToken)
