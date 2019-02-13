@@ -1,11 +1,10 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Net.Http;
 using System.Threading.Tasks;
 using IdentityModel;
 using IdentityModel.Client;
 using Lykke.Service.IroncladDecorator.Extensions;
-using Lykke.Service.IroncladDecorator.UserSession;
+using Lykke.Service.IroncladDecorator.Settings;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 
@@ -15,33 +14,35 @@ namespace Lykke.Service.IroncladDecorator.Controllers
     [ApiExplorerSettings(IgnoreApi = true)]
     public class AuthenticationController : Controller
     {
-        private readonly IUserSessionManager _userSessionManager;
         private readonly IDiscoveryCache _discoveryCache;
+        private readonly IroncladSettings _ironcladSettings;
 
         public AuthenticationController(
-            IUserSessionManager userSessionManager,
-            IDiscoveryCache discoveryCache)
+            IDiscoveryCache discoveryCache, IroncladSettings ironcladSettings)
         {
-            _userSessionManager = userSessionManager;
             _discoveryCache = discoveryCache;
+            _ironcladSettings = ironcladSettings;
         }
 
         [HttpGet("~/signin/{platform?}")]
-        public async Task<IActionResult> Login([FromRoute] string platform, [FromQuery] string returnUrl = null)
+        public async Task<IActionResult> Login([FromRoute] string platform, [FromQuery] string returnUrl)
         {
-            var userSession = new UserSession.UserSession();
+            string clientId;
+            string signinCallback;
 
-            userSession.Set("SigninPlatform", platform);
-            userSession.Set("SigninReturnUrl", returnUrl);
-
-            await _userSessionManager.SetUserSession(userSession);
-
-            return await RedirectToExternalProvider();
-        }
-
-        private async Task<ActionResult> RedirectToExternalProvider()
-        {
-            var signinCallback = Url.AbsoluteAction("SigninCallback", "Callback");
+            switch (platform)
+            {
+                case "android":
+                    clientId = _ironcladSettings.AndroidClient.ClientId;
+                    signinCallback = Url.AbsoluteAction("SigninCallbackAndroid", "Callback");
+                    break;
+                case "ios":
+                    clientId = _ironcladSettings.IosClient.ClientId;
+                    signinCallback = Url.AbsoluteAction("SigninCallbackIos", "Callback");
+                    break;
+                default:
+                    return BadRequest();
+            }
 
             var discoveryResponse = await _discoveryCache.GetAsync();
 
@@ -51,9 +52,10 @@ namespace Lykke.Service.IroncladDecorator.Controllers
                 throw new Exception(discoveryResponse.Error);
             }
 
+
             var authorizeRequest = new Dictionary<string, string>
             {
-                {OidcConstants.AuthorizeRequest.ClientId, "2828d97c-a866-492f-badc-ad2350b5de2f"},
+                {OidcConstants.AuthorizeRequest.ClientId, clientId},
                 {OidcConstants.AuthorizeRequest.RedirectUri, signinCallback},
                 {OidcConstants.AuthorizeRequest.Scope, "profile openid email lykke offline_access"},
                 {OidcConstants.AuthorizeRequest.ResponseType, OidcConstants.ResponseTypes.Code},
