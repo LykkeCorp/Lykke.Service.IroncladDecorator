@@ -128,6 +128,8 @@ namespace Lykke.Service.IroncladDecorator.Controllers
 
             var authResult = await _clientSessionsClient.Authenticate(userId, "hobbit");
 
+            //todo <=
+            //can be combined into single call to userSession
             SaveAuthResult(userSession, authResult);
 
             SaveTokensToUserSession(userSession, tokens);
@@ -135,8 +137,10 @@ namespace Lykke.Service.IroncladDecorator.Controllers
             await SaveLykkeSession(authResult.SessionToken, tokens);
 
             await _userSessionManager.SetUserSession(userSession);
+            //todo =>
         }
 
+        //todo: move to IdToken object
         private static string GetUserId(string idToken)
         {
             var jwtHandler = new JwtSecurityTokenHandler();
@@ -182,6 +186,7 @@ namespace Lykke.Service.IroncladDecorator.Controllers
             userUserSession.Set("LykkeClientId", clientSession.ClientId);
         }
 
+        //todo: move to LykkeSession object
         private Task SaveLykkeSession(string oldLykkeToken, TokenData tokens)
         {
             var lykkeSession = new LykkeSession(oldLykkeToken, tokens);
