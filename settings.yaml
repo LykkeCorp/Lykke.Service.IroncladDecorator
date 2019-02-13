@@ -21,6 +21,14 @@ IroncladDecoratorService:
       settings-key: IroncladDecoratorService-IroncladSettings-IntrospectionClient
       types:
         - Json
+    AndroidClient:
+      settings-key: IroncladDecoratorService-IroncladSettings-AndroidClient
+      types:
+        - Json
+    IosClient:
+      settings-key: IroncladDecoratorService-IroncladSettings-IosClient
+      types:
+        - Json
 SlackNotifications:
   AzureQueue:
     ConnectionString:
