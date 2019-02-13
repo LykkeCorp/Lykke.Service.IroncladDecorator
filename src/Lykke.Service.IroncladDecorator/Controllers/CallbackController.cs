@@ -102,7 +102,7 @@ namespace Lykke.Service.IroncladDecorator.Controllers
         {
             await ProcessMobileCallback(_ironcladSettings.IosClient, Url.AbsoluteAction("SigninCallbackIos", "Callback"));
 
-            return View("AfterLogin.ios");
+            return Ok();
         }
 
         private async Task ProcessMobileCallback(IdentityProviderClientSettings clientSettings, string redirectUri)
