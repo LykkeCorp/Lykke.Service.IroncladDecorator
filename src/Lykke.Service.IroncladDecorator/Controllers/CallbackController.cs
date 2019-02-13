@@ -102,6 +102,13 @@ namespace Lykke.Service.IroncladDecorator.Controllers
         {
             await ProcessMobileCallback(_ironcladSettings.IosClient, Url.AbsoluteAction("SigninCallbackIos", "Callback"));
 
+            return RedirectToAction("AfterLoginIos");
+        }
+
+        [HttpGet]
+        [Route("signin-oidc-ios-afterlogin")]
+        public IActionResult AfterLoginIos()
+        {
             return Ok();
         }
 
