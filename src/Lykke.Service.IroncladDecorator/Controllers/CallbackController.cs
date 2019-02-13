@@ -38,7 +38,7 @@ namespace Lykke.Service.IroncladDecorator.Controllers
             IClientSessionsClient clientSessionsClient,
             IHttpClientFactory httpClientFactory,
             IDiscoveryCache discoveryCache,
-            IroncladSettings ironcladSettings, 
+            IroncladSettings ironcladSettings,
             ILykkeSessionManager lykkeSessionManager)
         {
             _clientSessionsClient = clientSessionsClient;
@@ -62,23 +62,24 @@ namespace Lykke.Service.IroncladDecorator.Controllers
                 _log.Warning(SessinNotExistMessage);
                 return BadRequest(SessinNotExistMessage);
             }
-
-            var query = GetAuthorizeQueryAsync(userSession);
-
+           
             var authCode = HttpContext.Request.Query["code"];
 
-            var tokens = await GetTokens(authCode);
+            var tokens = await GetTokens(authCode, _ironcladSettings.AuthClient, Url.AbsoluteAction("SigninCallback", "Callback"));
 
             var userId = GetUserId(tokens.IdentityToken);
 
             var authResult = await _clientSessionsClient.Authenticate(userId, "hobbit");
+
             SaveAuthResult(userSession, authResult);
-            
+
             SaveTokensToUserSession(userSession, tokens);
 
             await SaveLykkeSession(authResult.SessionToken, tokens);
-            
+
             await _userSessionManager.SetUserSession(userSession);
+
+            var query = GetAuthorizeQueryAsync(userSession);
 
             var redirectUri = BuildFragmentRedirectUri(query, tokens);
 
@@ -88,20 +89,41 @@ namespace Lykke.Service.IroncladDecorator.Controllers
 
         [HttpGet]
         [Route("signin-oidc-android")]
-        public IActionResult SigninCallbackAndroid()
+        public async Task<IActionResult> SigninCallbackAndroid()
         {
-            //todo: extract tokens
-            //todo: authenticate user to server cookie
+            await ProcessMobileCallback(_ironcladSettings.AndroidClient, Url.AbsoluteAction("SigninCallbackAndroid", "Callback"));
+            
             return RedirectToAction("GetLykkeWalletTokenMobile", "Resources");
         }
 
         [HttpGet]
         [Route("signin-oidc-ios")]
-        public IActionResult SigninCallbackIos()
+        public async Task<IActionResult> SigninCallbackIos()
         {
-            //todo: extract tokens
-            //todo: authenticate user to server cookie
+            await ProcessMobileCallback(_ironcladSettings.IosClient, Url.AbsoluteAction("SigninCallbackIos", "Callback"));
+
             return View("AfterLogin.ios");
+        }
+
+        private async Task ProcessMobileCallback(IdentityProviderClientSettings clientSettings, string redirectUri)
+        {
+            var userSession = new UserSession.UserSession();
+
+            var authCode = HttpContext.Request.Query["code"];
+
+            var tokens = await GetTokens(authCode, clientSettings, redirectUri);
+
+            var userId = GetUserId(tokens.IdentityToken);
+
+            var authResult = await _clientSessionsClient.Authenticate(userId, "hobbit");
+
+            SaveAuthResult(userSession, authResult);
+
+            SaveTokensToUserSession(userSession, tokens);
+
+            await SaveLykkeSession(authResult.SessionToken, tokens);
+
+            await _userSessionManager.SetUserSession(userSession);
         }
 
         private static string GetUserId(string idToken)
@@ -115,7 +137,7 @@ namespace Lykke.Service.IroncladDecorator.Controllers
             return sub?.Value;
         }
 
-        private async Task<TokenData> GetTokens(string authCode)
+        private async Task<TokenData> GetTokens(string authCode, IdentityProviderClientSettings clientSettings, string redirectUri)
         {
             var httpClient = _httpClientFactory.CreateClient();
 
@@ -131,9 +153,9 @@ namespace Lykke.Service.IroncladDecorator.Controllers
             {
                 Address = discoveryResponse.TokenEndpoint,
                 Code = authCode,
-                ClientId = _ironcladSettings.AuthClient.ClientId,
-                ClientSecret = _ironcladSettings.AuthClient.ClientSecret,
-                RedirectUri = Url.AbsoluteAction("SigninCallback", "Callback")
+                ClientId = clientSettings.ClientId,
+                ClientSecret = clientSettings.ClientSecret,
+                RedirectUri = redirectUri
             });
 
             if (tokenResponse.IsError)
