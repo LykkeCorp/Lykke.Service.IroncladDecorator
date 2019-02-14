@@ -17,7 +17,7 @@ namespace Lykke.Service.IroncladDecorator.UserSession
 
         public UserSession()
         {
-            Id = Guid.NewGuid().ToString();
+            Id = Guid.NewGuid().ToString("N");
             _data = new Dictionary<string, string>();
         }
 

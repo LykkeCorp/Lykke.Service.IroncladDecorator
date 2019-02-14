@@ -148,6 +148,8 @@ namespace Lykke.Service.IroncladDecorator.Controllers
             if (sessionId == null) return Unauthorized();
 
             var session = await _userSessionRepository.GetAsync(sessionId);
+            if (session == null) return Unauthorized();
+
             var oldLykkeToken = session.Get<string>("OldLykkeToken");
             if (oldLykkeToken == null) return Unauthorized();
 
