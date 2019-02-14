@@ -3,11 +3,15 @@ using System.Net.Http;
 using IdentityModel.Client;
 using JetBrains.Annotations;
 using Lykke.Sdk;
+using Lykke.Service.IroncladDecorator.Extensions;
 using Lykke.Service.IroncladDecorator.Settings;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.WindowsAzure.Storage;
+using Microsoft.WindowsAzure.Storage.Blob;
+using Microsoft.WindowsAzure.Storage.RetryPolicies;
 
 namespace Lykke.Service.IroncladDecorator
 {
@@ -36,14 +40,19 @@ namespace Lykke.Service.IroncladDecorator
 
                 options.Extend = (sc, settings) =>
                 {
+                    var currentSettings = settings.CurrentValue;
+
                     sc.AddHttpContextAccessor();
 
-                    sc.AddDataProtection()
-                        .UseEphemeralDataProtectionProvider();
+                    services.AddLykkeAzureBlobDataProtection(
+                        currentSettings.IroncladDecoratorService.Db.DataProtectionConnString);
 
-                    sc.AddDistributedMemoryCache();
+                    services.AddDistributedRedisCache(cacheOptions =>
+                    {
+                        cacheOptions.Configuration = currentSettings.IroncladDecoratorService.Db.RedisConnString;
+                    });
 
-                    var ironcladIdp = settings.CurrentValue.IroncladDecoratorService.IroncladSettings.IroncladIdp;
+                    var ironcladIdp = currentSettings.IroncladDecoratorService.IroncladSettings.IroncladIdp;
 
                     sc.AddAuthentication(
                             authOptions =>
@@ -105,5 +114,6 @@ namespace Lykke.Service.IroncladDecorator
                 options.SwaggerOptions = _swaggerOptions;
             });
         }
+
     }
 }

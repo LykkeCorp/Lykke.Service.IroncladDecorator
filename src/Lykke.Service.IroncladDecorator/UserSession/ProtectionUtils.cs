@@ -1,4 +1,5 @@
 ﻿using System.Security.Cryptography;
+using System.Text;
 using Microsoft.AspNetCore.DataProtection;
 using Newtonsoft.Json;
 
@@ -21,9 +22,25 @@ namespace Lykke.Service.IroncladDecorator.UserSession
 
                 return JsonConvert.DeserializeObject<T>(unprotected);
             }
-            catch (CryptographicException e)
+            catch (CryptographicException)
             {
                 return default;
+            }
+        }
+
+        public static string ComputeSha256Hash(string rawData)
+        {
+            using (var sha256Hash = SHA256.Create())
+            {
+                var bytes = sha256Hash.ComputeHash(Encoding.UTF8.GetBytes(rawData));
+
+                var builder = new StringBuilder();
+                foreach (var t in bytes)
+                {
+                    builder.Append(t.ToString("x2"));
+                }
+
+                return builder.ToString();
             }
         }
     }
