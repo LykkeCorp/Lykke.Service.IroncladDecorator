@@ -67,7 +67,15 @@ namespace Lykke.Service.IroncladDecorator.Controllers
 
             var externalAuthorizeUrl = $"{discoveryResponse.AuthorizeEndpoint}{query.ToUriComponent()}";
 
-            return Redirect(externalAuthorizeUrl);
+            switch (platform)
+            {
+                case "android":
+                    return View("~/Views/Redirector.cshtml", model: externalAuthorizeUrl);
+                case "ios":
+                    return Redirect(externalAuthorizeUrl);
+                default:
+                    return BadRequest();
+            }
         }
     }
 }
