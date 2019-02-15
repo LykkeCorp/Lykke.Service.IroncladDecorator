@@ -7,5 +7,6 @@ namespace Lykke.Service.IroncladDecorator.Settings
         [AzureTableCheck] public string LogsConnString { get; set; }
         public DataProtectionSettings DataProtectionSettings { get; set; }
         public string RedisConnString { get; set; }
+        public string ClientPersonalInfoConnString { get; set; }
     }
 }

@@ -1,10 +1,15 @@
 ﻿using Autofac;
+using AzureStorage;
+using AzureStorage.Tables;
+using Lykke.Common.Log;
 using Lykke.Service.ClientAccount.Client;
+using Lykke.Service.IroncladDecorator.Clients;
 using Lykke.Service.IroncladDecorator.LykkeSession;
 using Lykke.Service.IroncladDecorator.Settings;
 using Lykke.Service.IroncladDecorator.UserSession;
 using Lykke.Service.Session.Client;
 using Lykke.SettingsReader;
+using Microsoft.Extensions.Caching.Memory;
 
 namespace Lykke.Service.IroncladDecorator.Modules
 {
@@ -45,6 +50,21 @@ namespace Lykke.Service.IroncladDecorator.Modules
         {
             builder.RegisterType<UserSessionRepository>().As<IUserSessionRepository>().SingleInstance();
             builder.RegisterType<LykkeSessionRepository>().As<ILykkeSessionRepository>().SingleInstance();
+
+            var clientPersonalInfoConnString = _appSettings.ConnectionString(x => x.IroncladDecoratorService.Db.ClientPersonalInfoConnString);
+
+            builder.Register(c =>
+                    AzureTableStorage<ApplicationEntity>.Create(clientPersonalInfoConnString, "Applications",
+                        c.Resolve<ILogFactory>()))
+                .As<INoSQLTableStorage<ApplicationEntity>>()
+                .SingleInstance();
+
+            builder.RegisterType<ApplicationRepository>()
+                .Named<IApplicationRepository>("notCached");
+
+            builder.RegisterDecorator<IApplicationRepository>(
+                (c, inner) => new ApplicationCachedRepository(inner, c.Resolve<IMemoryCache>()), "notCached");
+
         }
     }
 }
