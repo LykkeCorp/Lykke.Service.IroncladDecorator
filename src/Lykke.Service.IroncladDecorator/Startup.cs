@@ -6,12 +6,8 @@ using Lykke.Sdk;
 using Lykke.Service.IroncladDecorator.Extensions;
 using Lykke.Service.IroncladDecorator.Settings;
 using Microsoft.AspNetCore.Builder;
-using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.WindowsAzure.Storage;
-using Microsoft.WindowsAzure.Storage.Blob;
-using Microsoft.WindowsAzure.Storage.RetryPolicies;
 
 namespace Lykke.Service.IroncladDecorator
 {

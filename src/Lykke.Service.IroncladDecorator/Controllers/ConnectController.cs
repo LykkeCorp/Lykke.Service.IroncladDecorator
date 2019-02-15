@@ -1,10 +1,12 @@
 ﻿using System;
+using System.Linq;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using System.Web;
 using Common.Log;
 using IdentityModel.Client;
 using Lykke.Common.Log;
+using Lykke.Service.IroncladDecorator.Clients;
 using Lykke.Service.IroncladDecorator.Extensions;
 using Lykke.Service.IroncladDecorator.UserSession;
 using Microsoft.AspNetCore.Mvc;
@@ -18,13 +20,16 @@ namespace Lykke.Service.IroncladDecorator.Controllers
         private readonly ILog _log;
         private readonly IUserSessionManager _userSessionManager;
         private readonly IDiscoveryCache _discoveryCache;
+        private readonly IApplicationRepository _applicationRepository;
 
         public ConnectController(
             ILogFactory logFactory,
             IUserSessionManager userSessionManager,
-            IDiscoveryCache discoveryCache
+            IDiscoveryCache discoveryCache,
+            IApplicationRepository applicationRepository
         )
         {
+            _applicationRepository = applicationRepository;
             _log = logFactory.CreateLog(this);
             _userSessionManager = userSessionManager;
             _discoveryCache = discoveryCache;
@@ -34,12 +39,40 @@ namespace Lykke.Service.IroncladDecorator.Controllers
         [Route("authorize")]
         public async Task<ActionResult> Authorize()
         {
+            var error = await ValidateQuery();
+            if (!string.IsNullOrEmpty(error))
+                return BadRequest(error);
+
             var query = GetQueryString();
 
             query = await AdaptQueryStringAsync(query);
 
             return await RedirectToExternalProvider(query);
         }
+
+        private async Task<string> ValidateQuery()
+        {
+            var clientId = Request.Query["client_id"];
+            if (string.IsNullOrEmpty(clientId))
+                return "client_id is required.";
+
+            var clientRedirectUri = Request.Query["redirect_uri"];
+            if (string.IsNullOrEmpty(clientRedirectUri))
+                return "redirect_uri is required.";
+
+            var client = await _applicationRepository.GetByIdAsync(clientId);
+
+            if (client == null)
+            {
+                return "client_id not found.";
+            }
+            if (client.RedirectUri.Split(';').FirstOrDefault(x => x == clientRedirectUri) == null)
+            {
+                return "redirect_uri is invalid";
+            }
+            return await Task.FromResult(string.Empty);
+        }
+
 
         private async Task<ActionResult> RedirectToExternalProvider(string query)
         {
@@ -84,9 +117,7 @@ namespace Lykke.Service.IroncladDecorator.Controllers
 
         private string GetQueryString()
         {
-            var query = Request.QueryString.Value;
-            _log.Info($"Authorize request received, query string {query}");
-            return query;
+            return Request.QueryString.Value;
         }
     }
 }

@@ -4,6 +4,28 @@
         <name>Lykke.Service.IroncladDecorator</name>
     </assembly>
     <members>
+        <member name="P:Lykke.Service.IroncladDecorator.Clients.OAuthClientProperties.AllowedAuthorizationFlows">
+            <summary>
+            Set of allowed authorization flows for client.
+            </summary>
+        </member>
+        <member name="P:Lykke.Service.IroncladDecorator.Clients.OAuthClientProperties.AllowOfflineAccess">
+            <summary>
+                Gets or sets a value indicating whether [allow offline access]. Defaults to <c>false</c>.
+                Allow or disallow issuing of refresh_tokens.
+            </summary>
+        </member>
+        <member name="P:Lykke.Service.IroncladDecorator.Clients.OAuthClientProperties.RequirePkce">
+            <summary>
+                Specifies whether a proof key is required for authorization code based token requests (defaults to <c>false</c>).
+                plain PKCE are disallowed by default. This property configures usage of encoded PKCE's.
+            </summary>
+        </member>
+        <member name="P:Lykke.Service.IroncladDecorator.Clients.OAuthClientProperties.RequireClientSecret">
+            <summary>
+                If set to false, no client secret is needed to request tokens at the token endpoint (defaults to <c>true</c>)
+            </summary>
+        </member>
         <member name="T:Lykke.Service.IroncladDecorator.Settings.IdentityProviderSettings">
             <summary>
                 Identity provider configuration.
