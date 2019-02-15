@@ -45,7 +45,7 @@ namespace Lykke.Service.IroncladDecorator
                     sc.AddHttpContextAccessor();
 
                     services.AddLykkeAzureBlobDataProtection(
-                        currentSettings.IroncladDecoratorService.Db.DataProtectionConnString);
+                        currentSettings.IroncladDecoratorService.Db.DataProtectionSettings);
 
                     services.AddDistributedRedisCache(cacheOptions =>
                     {

@@ -1,4 +1,6 @@
-﻿using Microsoft.AspNetCore.DataProtection;
+﻿using System;
+using Lykke.Service.IroncladDecorator.Settings;
+using Microsoft.AspNetCore.DataProtection;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.WindowsAzure.Storage;
 using Microsoft.WindowsAzure.Storage.Blob;
@@ -8,25 +10,25 @@ namespace Lykke.Service.IroncladDecorator.Extensions
 {
     public static class DataProtectionServiceCollectionExtensions
     {
-        private const string DataProtectionContainerName = "data-protection-container-name";
-        private const string DataProtectionAppName = "Lykke.Service.OAuth";
-
-        public static IDataProtectionBuilder AddLykkeAzureBlobDataProtection(this IServiceCollection services, string dataProtectionConnString)
+        public static IDataProtectionBuilder AddLykkeAzureBlobDataProtection(this IServiceCollection services, DataProtectionSettings dataProtectionSettings)
         {
+            if(dataProtectionSettings == null)
+                throw new ArgumentNullException(nameof(dataProtectionSettings));
+
             return services.AddDataProtection()
                 // Do not change this value. Otherwise the key will be invalid.
-                .SetApplicationName(DataProtectionAppName)
+                .SetApplicationName(dataProtectionSettings.AppName)
                 .PersistKeysToAzureBlobStorage(
-                    SetupDataProtectionStorage(dataProtectionConnString),
-                    $"{DataProtectionContainerName}/cookie-keys/keys.xml");
+                    SetupDataProtectionStorage(dataProtectionSettings.BlobStorageConnString, dataProtectionSettings.ContainerName),
+                    $"{dataProtectionSettings.ContainerName}{dataProtectionSettings.RelativePath}");
         }
 
         
-        private static CloudStorageAccount SetupDataProtectionStorage(string dbDataProtectionConnString)
+        private static CloudStorageAccount SetupDataProtectionStorage(string dbDataProtectionConnString, string containerName)
         {
             var storageAccount = CloudStorageAccount.Parse(dbDataProtectionConnString);
             var client = storageAccount.CreateCloudBlobClient();
-            var container = client.GetContainerReference(DataProtectionContainerName);
+            var container = client.GetContainerReference(containerName);
 
             container.CreateIfNotExistsAsync(new BlobRequestOptions {RetryPolicy = new ExponentialRetry()},
                 new OperationContext()).GetAwaiter().GetResult();
