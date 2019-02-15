@@ -7,9 +7,14 @@ IroncladDecoratorService:
     RedisConnString:
       settings-key: IroncladDecoratorService-RedisConnString
     DataProtectionSettings:
-      settings-key: IroncladDecoratorService-DataProtectionSettings
-      types:
-        - Json
+      BlobStorageConnString:
+        settings-key: IroncladDecoratorService-DataProtectionSettings-BlobStorageConnString
+      ContainerName: 
+        settings-key: IroncladDecoratorService-DataProtectionSettings-ContainerName
+      AppName: 
+        settings-key: IroncladDecoratorService-DataProtectionSettings-AppName
+      RelativePath: 
+        settings-key: IroncladDecoratorService-DataProtectionSettings-RelativePath
   LifetimeSettings:
     settings-key: IroncladDecoratorService-LifetimeSettings
     types:
