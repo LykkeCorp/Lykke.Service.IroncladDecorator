@@ -22,14 +22,12 @@ namespace Lykke.Service.IroncladDecorator.Modules
             builder.Register(c => _appSettings.CurrentValue.IroncladDecoratorService.IroncladSettings);
             builder.Register(c => _appSettings.CurrentValue.IroncladDecoratorService.LifetimeSettings);
 
-            builder.RegisterType<UserSessionManager>()
-                .WithParameter(new TypedParameter(typeof(LifetimeSettings),
-                    _appSettings.CurrentValue.IroncladDecoratorService.LifetimeSettings))
-                .As<IUserSessionManager>()
-                .SingleInstance();            
+            builder.RegisterType<UserSessionManager>().As<IUserSessionManager>().SingleInstance();            
             
             builder.RegisterType<LykkeSessionManager>().As<ILykkeSessionManager>().SingleInstance();
 
+            builder.RegisterType<OAuthCookieManager>().As<IOAuthCookieManager>().SingleInstance();
+            
             RegisterRepositories(builder);
 
             RegisterClients(builder);
