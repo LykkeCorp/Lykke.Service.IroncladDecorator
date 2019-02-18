@@ -4,6 +4,7 @@ using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using System.Web;
 using Common.Log;
+using IdentityModel;
 using IdentityModel.Client;
 using Lykke.Common.Log;
 using Lykke.Service.IroncladDecorator.Clients;
@@ -52,23 +53,23 @@ namespace Lykke.Service.IroncladDecorator.Controllers
 
         private async Task<string> ValidateQuery()
         {
-            var clientId = Request.Query["client_id"];
+            var clientId = Request.Query[OidcConstants.AuthorizeRequest.ClientId];
             if (string.IsNullOrEmpty(clientId))
-                return "client_id is required.";
+                return OidcConstants.AuthorizeRequest.ClientId + " is required.";
 
-            var clientRedirectUri = Request.Query["redirect_uri"];
+            var clientRedirectUri = Request.Query[OidcConstants.AuthorizeRequest.RedirectUri];
             if (string.IsNullOrEmpty(clientRedirectUri))
-                return "redirect_uri is required.";
+                return OidcConstants.AuthorizeRequest.RedirectUri + " is required.";
 
             var client = await _applicationRepository.GetByIdAsync(clientId);
 
             if (client == null)
             {
-                return "client_id not found.";
+                return OidcConstants.AuthorizeRequest.ClientId + " not found.";
             }
             if (client.RedirectUri.Split(';').FirstOrDefault(x => x == clientRedirectUri) == null)
             {
-                return "redirect_uri is invalid";
+                return OidcConstants.AuthorizeRequest.RedirectUri + " is invalid";
             }
             return await Task.FromResult(string.Empty);
         }
@@ -94,7 +95,7 @@ namespace Lykke.Service.IroncladDecorator.Controllers
         private async Task<string> AdaptQueryStringAsync(string query)
         {
             await SaveAuthorizeQueryString(query);
-            var clientRedirectUri = Request.Query["redirect_uri"];
+            var clientRedirectUri = Request.Query[OidcConstants.AuthorizeRequest.RedirectUri];
 
             var clientRedirectUriEncoded = HttpUtility.UrlEncode(clientRedirectUri);
             var signinCallback = Url.AbsoluteAction("SigninCallback", "Callback");
@@ -102,7 +103,7 @@ namespace Lykke.Service.IroncladDecorator.Controllers
             query = Regex.Replace(query, clientRedirectUriEncoded,
                 signinCallbackEncoded ?? throw new InvalidOperationException(), RegexOptions.IgnoreCase);
 
-            var responseType = Request.Query["response_type"];
+            var responseType = Request.Query[OidcConstants.AuthorizeRequest.ResponseType];
             query = Regex.Replace(query, responseType, "code", RegexOptions.IgnoreCase);
 
             return query;
