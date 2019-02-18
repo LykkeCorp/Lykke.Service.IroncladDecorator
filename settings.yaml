@@ -4,6 +4,8 @@ IroncladDecoratorService:
       settings-key: IroncladDecoratorService-LogsConnString
       types:
         - AzureTableStorage
+    ClientPersonalInfoConnString:
+      settings-key: IroncladDecoratorService-ClientPersonalInfoConnString
     RedisConnString:
       settings-key: IroncladDecoratorService-RedisConnString
     DataProtectionSettings:
