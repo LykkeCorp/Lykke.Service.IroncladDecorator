@@ -12,6 +12,6 @@ namespace Lykke.Service.IroncladDecorator.UserSession
 
         Task<UserSession> GetUserSession();
 
-        Task SetUserSession(UserSession session);
+        Task SetUserSession(UserSession session, bool updateCookie = true);
     }
 }

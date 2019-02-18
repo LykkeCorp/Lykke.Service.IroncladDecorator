@@ -28,8 +28,6 @@ namespace Lykke.Service.IroncladDecorator.Modules
             builder.Register(c => _appSettings.CurrentValue.IroncladDecoratorService.LifetimeSettings);
 
             builder.RegisterType<UserSessionManager>()
-                .WithParameter(new TypedParameter(typeof(LifetimeSettings),
-                    _appSettings.CurrentValue.IroncladDecoratorService.LifetimeSettings))
                 .As<IUserSessionManager>()
                 .SingleInstance();            
             

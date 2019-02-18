@@ -93,13 +93,13 @@ namespace Lykke.Service.IroncladDecorator.UserSession
             return session;
         }
 
-        public async Task SetUserSession(UserSession session)
+        public async Task SetUserSession(UserSession session, bool updateCookie)
         {
             _log.Info("Start setting session.");
 
             var idFromCookie = GetIdFromCookie();
 
-            var shouldCreateCookie = false;
+            var shouldCreateCookie = updateCookie;
 
             if (string.IsNullOrEmpty(idFromCookie))
             {

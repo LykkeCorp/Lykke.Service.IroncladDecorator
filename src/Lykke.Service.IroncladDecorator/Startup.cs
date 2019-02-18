@@ -1,9 +1,11 @@
 ﻿using System;
 using System.Net.Http;
+using IdentityModel;
 using IdentityModel.Client;
 using JetBrains.Annotations;
 using Lykke.Sdk;
 using Lykke.Service.IroncladDecorator.Extensions;
+using Lykke.Service.IroncladDecorator.OpenIdConnect;
 using Lykke.Service.IroncladDecorator.Settings;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
@@ -13,7 +15,7 @@ namespace Lykke.Service.IroncladDecorator
 {
     [UsedImplicitly]
     public class Startup
-    {
+    {       
         private readonly LykkeSwaggerOptions _swaggerOptions = new LykkeSwaggerOptions
         {
             ApiTitle = "IroncladDecorator API",
@@ -23,6 +25,8 @@ namespace Lykke.Service.IroncladDecorator
         [UsedImplicitly]
         public IServiceProvider ConfigureServices(IServiceCollection services)
         {
+            services.AddTransient<CustomOpenIdConnectEvents>();
+
             return services.BuildServiceProvider<AppSettings>(options =>
             {
                 options.SwaggerOptions = _swaggerOptions;
@@ -37,6 +41,19 @@ namespace Lykke.Service.IroncladDecorator
                 options.Extend = (sc, settings) =>
                 {
                     var currentSettings = settings.CurrentValue;
+            
+                    var ironcladIdp = currentSettings.IroncladDecoratorService.IroncladSettings.IroncladIdp;
+
+                    sc.AddAuthentication(
+                            authOptions =>
+                            {
+                                authOptions.DefaultScheme = "Cookies";
+                                authOptions.DefaultChallengeScheme = "oidc";
+                            })
+                        .AddCookie("Cookies")
+                        .AddMobileClient("android",
+                            currentSettings.IroncladDecoratorService.IroncladSettings.AndroidClient)
+                        .AddMobileClient("ios", currentSettings.IroncladDecoratorService.IroncladSettings.IosClient);
 
                     sc.AddHttpContextAccessor();
 
@@ -47,36 +64,6 @@ namespace Lykke.Service.IroncladDecorator
                     {
                         cacheOptions.Configuration = currentSettings.IroncladDecoratorService.Db.RedisConnString;
                     });
-
-                    var ironcladIdp = currentSettings.IroncladDecoratorService.IroncladSettings.IroncladIdp;
-
-                    sc.AddAuthentication(
-                            authOptions =>
-                            {
-                                authOptions.DefaultScheme = "Cookies";
-                                authOptions.DefaultChallengeScheme = "oidc";
-                            })
-                        .AddCookie("Cookies")
-                        .AddOpenIdConnect("oidc", idConnectOptions =>
-                        {
-                            idConnectOptions.SignInScheme = "Cookies";
-
-                            idConnectOptions.Authority = ironcladIdp.Authority;
-                            idConnectOptions.RequireHttpsMetadata = false;
-
-                            idConnectOptions.ClientId = ironcladIdp.ClientId;
-                            idConnectOptions.ClientSecret = ironcladIdp.ClientSecret;
-                            idConnectOptions.ResponseType = "code id_token";
-
-                            idConnectOptions.SaveTokens = true;
-                            idConnectOptions.GetClaimsFromUserInfoEndpoint = true;
-
-                            idConnectOptions.Scope.Clear();
-
-                            idConnectOptions.Scope.Add("openid");
-                            idConnectOptions.Scope.Add("sample_api");
-                            idConnectOptions.Scope.Add("offline_access");
-                        });
 
                     sc.AddHttpClient();
 
@@ -104,6 +91,8 @@ namespace Lykke.Service.IroncladDecorator
                 options.AllowCredentials();
                 options.AllowAnyMethod();
             });
+
+            app.UseAuthentication();
 
             app.UseLykkeConfiguration(options =>
             {
