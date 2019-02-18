@@ -91,8 +91,8 @@ namespace Lykke.Service.IroncladDecorator.Controllers
         [Route("signin-oidc-android")]
         public async Task<IActionResult> SigninCallbackAndroid()
         {
-            await ProcessMobileCallback(_ironcladSettings.AndroidClient, Url.AbsoluteAction("SigninCallbackAndroid", "Callback"));
-            
+            await ProcessMobileCallback();
+
             return RedirectToAction("GetLykkeWalletTokenMobile", "Resources");
         }
 
@@ -100,7 +100,7 @@ namespace Lykke.Service.IroncladDecorator.Controllers
         [Route("signin-oidc-ios")]
         public async Task<IActionResult> SigninCallbackIos()
         {
-            await ProcessMobileCallback(_ironcladSettings.IosClient, Url.AbsoluteAction("SigninCallbackIos", "Callback"));
+            await ProcessMobileCallback();
 
             return RedirectToAction("AfterLoginIos");
         }
@@ -112,13 +112,17 @@ namespace Lykke.Service.IroncladDecorator.Controllers
             return Ok();
         }
 
-        private async Task ProcessMobileCallback(IdentityProviderClientSettings clientSettings, string redirectUri)
+        private async Task ProcessMobileCallback()
         {
-            var userSession = new UserSession.UserSession();
+            if (!HttpContext.Items.TryGetValue("CallbackTokenEndpointResponse", out var tokensValue))
+            {
+                throw new Exception("No token result in callback.");
+            }
 
-            var authCode = HttpContext.Request.Query["code"];
-
-            var tokens = await GetTokens(authCode, clientSettings, redirectUri);
+            if(!(tokensValue is TokenData tokens))
+                throw new Exception("Could not cast to token data.");
+            
+            var userSession = await _userSessionManager.GetUserSession() ?? new UserSession.UserSession();
 
             var userId = GetUserId(tokens.IdentityToken);
 

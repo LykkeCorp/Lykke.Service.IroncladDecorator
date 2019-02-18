@@ -1,5 +1,6 @@
 ﻿using System;
 using IdentityModel.Client;
+using Microsoft.IdentityModel.Protocols.OpenIdConnect;
 
 namespace Lykke.Service.IroncladDecorator.UserSession
 {
@@ -18,6 +19,18 @@ namespace Lykke.Service.IroncladDecorator.UserSession
             ExpiresIn = tokenResponse.ExpiresIn;
             //TODO Refactor to factory.
             ExpiresAt = DateTimeOffset.UtcNow.AddSeconds(tokenResponse.ExpiresIn);
+        }
+
+        public TokenData(OpenIdConnectMessage tokenResponse)
+        {
+            var expiresIn = Convert.ToInt32(tokenResponse.ExpiresIn);
+            IdentityToken = tokenResponse.IdToken;
+            AccessToken = tokenResponse.AccessToken;
+            RefreshToken = tokenResponse.RefreshToken;
+            TokenType = tokenResponse.TokenType;
+            ExpiresIn = expiresIn;
+            //TODO Refactor to factory.
+            ExpiresAt = DateTimeOffset.UtcNow.AddSeconds(expiresIn);
         }
 
         public string IdentityToken { get; set; }
