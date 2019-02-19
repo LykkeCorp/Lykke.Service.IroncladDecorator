@@ -5,12 +5,23 @@ namespace Lykke.Service.IroncladDecorator.OpenIdConnect
     {
         public static class Authentication
         {
-            public static string RequestUrl = "AuthenticationRequestUrl";
+            public const string RequestUrl = "AuthenticationRequestUrl";
         }
 
         public static class Callback
         {
-            public static string TokenEndpointResponse = "CallbackTokenEndpointResponse";
+            public const string TokenEndpointResponse = "CallbackTokenEndpointResponse";
+        }
+
+        public static class Platforms
+        {
+            public const string Android = "android";
+            public const string Ios = "ios";
+        }
+
+        public static class Cookies
+        {
+            public const string DefaultSignInCookie = "Cookies";
         }
     }
 }
