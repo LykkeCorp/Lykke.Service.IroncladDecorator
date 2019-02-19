@@ -2,7 +2,7 @@
 using IdentityModel.Client;
 using Microsoft.IdentityModel.Protocols.OpenIdConnect;
 
-namespace Lykke.Service.IroncladDecorator.UserSession
+namespace Lykke.Service.IroncladDecorator.Sessions
 {
     public class TokenData
     {

@@ -3,7 +3,7 @@ using System.Text;
 using Microsoft.AspNetCore.DataProtection;
 using Newtonsoft.Json;
 
-namespace Lykke.Service.IroncladDecorator.UserSession
+namespace Lykke.Service.IroncladDecorator.Sessions
 {
     internal static class ProtectionUtils
     {

@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using Newtonsoft.Json;
 
-namespace Lykke.Service.IroncladDecorator.UserSession
+namespace Lykke.Service.IroncladDecorator.Sessions
 {
     public class UserSession
     {

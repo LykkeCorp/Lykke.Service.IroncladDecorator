@@ -1,7 +1,7 @@
 ﻿using System.Threading.Tasks;
 using Lykke.Service.Session.Client;
 
-namespace Lykke.Service.IroncladDecorator.LykkeSession
+namespace Lykke.Service.IroncladDecorator.Sessions
 {
     internal class LykkeSessionManager : ILykkeSessionManager
     {

@@ -1,6 +1,6 @@
 ﻿using System.Threading.Tasks;
 
-namespace Lykke.Service.IroncladDecorator.LykkeSession
+namespace Lykke.Service.IroncladDecorator.Sessions
 {
     public interface ILykkeSessionRepository
     {

@@ -6,9 +6,8 @@ using IdentityModel;
 using IdentityModel.Client;
 using Lykke.Service.ClientAccount.Client;
 using Lykke.Service.IroncladDecorator.Extensions;
-using Lykke.Service.IroncladDecorator.LykkeSession;
+using Lykke.Service.IroncladDecorator.Sessions;
 using Lykke.Service.IroncladDecorator.Settings;
-using Lykke.Service.IroncladDecorator.UserSession;
 using Lykke.Service.Session.Client;
 using Microsoft.AspNetCore.Mvc;
 
@@ -116,7 +115,7 @@ namespace Lykke.Service.IroncladDecorator.Controllers
 
             lykkeSession.IroncladTokens = tokens;
 
-            var newLykkeSession = new LykkeSession.LykkeSession(oldLykkeToken, tokens);
+            var newLykkeSession = new LykkeSession(oldLykkeToken, tokens);
 
             await _lykkeSessionManager.SetAsync(newLykkeSession);
 

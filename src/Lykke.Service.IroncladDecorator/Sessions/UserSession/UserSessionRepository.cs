@@ -6,7 +6,7 @@ using Lykke.Service.IroncladDecorator.Settings;
 using Microsoft.AspNetCore.DataProtection;
 using Microsoft.Extensions.Caching.Distributed;
 
-namespace Lykke.Service.IroncladDecorator.UserSession
+namespace Lykke.Service.IroncladDecorator.Sessions
 {
     public class UserSessionRepository : IUserSessionRepository
     {
@@ -32,17 +32,17 @@ namespace Lykke.Service.IroncladDecorator.UserSession
             };
         }
 
-        public Task SetAsync(UserSession userSession)
+        public Task SetAsync(UserSession userUserSession)
         {
-            if (userSession == null)
-                throw new ArgumentNullException(nameof(userSession));
+            if (userUserSession == null)
+                throw new ArgumentNullException(nameof(userUserSession));
 
-            var id = userSession.Id;
+            var id = userUserSession.Id;
 
             if (string.IsNullOrWhiteSpace(id))
                 throw new ArgumentException("Session id is empty.");
 
-            var session = ProtectionUtils.SerializeAndProtect(userSession.Data, _dataProtector);
+            var session = ProtectionUtils.SerializeAndProtect(userUserSession.Data, _dataProtector);
 
             return _distributedCache.SetStringAsync(GetSessionKey(id), session, _cacheEntryOptions);
         }

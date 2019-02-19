@@ -7,7 +7,7 @@ using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http;
 
-namespace Lykke.Service.IroncladDecorator.UserSession
+namespace Lykke.Service.IroncladDecorator.Sessions
 {
     public class UserSessionManager : IUserSessionManager
     {
@@ -43,11 +43,11 @@ namespace Lykke.Service.IroncladDecorator.UserSession
 
         private bool IsCookieExist => HttpContext.Request.Cookies.ContainsKey(CookieName);
 
-        public void CreateIdCookie(UserSession session)
+        public void CreateIdCookie(UserSession userSession)
         {
             var cookieOptions = CreateCookieOptions();
 
-            var value = ProtectionUtils.SerializeAndProtect(session.Id, _dataProtector);
+            var value = ProtectionUtils.SerializeAndProtect(userSession.Id, _dataProtector);
 
             HttpContext.Response.Cookies.Append(CookieName, value, cookieOptions);
         }
@@ -93,39 +93,11 @@ namespace Lykke.Service.IroncladDecorator.UserSession
             return session;
         }
 
-        public async Task SetUserSession(UserSession session, bool updateCookie)
+        public async Task SetUserSession(UserSession userSession)
         {
-            _log.Info("Start setting session.");
+            CreateIdCookie(userSession);
 
-            var idFromCookie = GetIdFromCookie();
-
-            var shouldCreateCookie = updateCookie;
-
-            if (string.IsNullOrEmpty(idFromCookie))
-            {
-                _log.Info("No session id found in cookie.");
-                shouldCreateCookie = true;
-            }
-            else if (!string.Equals(idFromCookie, session.Id))
-            {
-                _log.Info(
-                    "Session id from cookie is different from new user session to set. CookieSessionId:{CookieSessionId}, NewSessionId:{NewSessionId}",
-                    idFromCookie,
-                    session.Id);
-                shouldCreateCookie = true;
-            }
-
-            if (shouldCreateCookie)
-            {
-                _log.Info("Creating new cookie. Id:{Id}", session.Id);
-                CreateIdCookie(session);
-            }
-            else
-            {
-                _log.Info("Session cookie already exist.", idFromCookie);
-            }
-
-            await _userSessionRepository.SetAsync(session);
+            await _userSessionRepository.SetAsync(userSession);
         }
 
         private CookieOptions CreateCookieOptions()

@@ -9,7 +9,7 @@ using IdentityModel.Client;
 using Lykke.Common.Log;
 using Lykke.Service.IroncladDecorator.Clients;
 using Lykke.Service.IroncladDecorator.Extensions;
-using Lykke.Service.IroncladDecorator.UserSession;
+using Lykke.Service.IroncladDecorator.Sessions;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Lykke.Service.IroncladDecorator.Controllers
@@ -111,7 +111,7 @@ namespace Lykke.Service.IroncladDecorator.Controllers
 
         private async Task SaveAuthorizeQueryString(string query)
         {
-            var userSession = new UserSession.UserSession();
+            var userSession = new UserSession();
             userSession.Set("AuthorizeQueryString", query);
             await _userSessionManager.SetUserSession(userSession);
         }
