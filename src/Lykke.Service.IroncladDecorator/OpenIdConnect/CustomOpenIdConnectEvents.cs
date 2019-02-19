@@ -1,5 +1,5 @@
 ﻿using System.Threading.Tasks;
-using Lykke.Service.IroncladDecorator.UserSession;
+using Lykke.Service.IroncladDecorator.Sessions;
 using Microsoft.AspNetCore.Authentication.OpenIdConnect;
 
 namespace Lykke.Service.IroncladDecorator.OpenIdConnect
@@ -18,7 +18,9 @@ namespace Lykke.Service.IroncladDecorator.OpenIdConnect
             protocolMessage.State = context.Options.StateDataFormat.Protect(properties);
 
             //note: save correct auth url to redirect to it in ConnectController.
-            context.HttpContext.Items.Add("OpenIdConnectAuthenticationRequestUrl", protocolMessage.CreateAuthenticationRequestUrl());
+            context.HttpContext.Items.Add(
+                Constants.Authentication.RequestUrl, 
+                protocolMessage.CreateAuthenticationRequestUrl());
 
             context.HandleResponse();
 
@@ -32,7 +34,7 @@ namespace Lykke.Service.IroncladDecorator.OpenIdConnect
             var tokenData = new TokenData(context.TokenEndpointResponse);
 
             //note: save tokens to get them in CallbackController.
-            context.HttpContext.Items["CallbackTokenEndpointResponse"] = tokenData;
+            context.HttpContext.Items[Constants.Callback.TokenEndpointResponse] = tokenData;
 
             return Task.CompletedTask;
         }

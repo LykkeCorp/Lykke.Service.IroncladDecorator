@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Threading.Tasks;
+using Lykke.Service.IroncladDecorator.OpenIdConnect;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Mvc;
 
@@ -22,7 +23,9 @@ namespace Lykke.Service.IroncladDecorator.Controllers
                     return BadRequest("Platform not supported.");
             }
 
-            var isRequestCreated = HttpContext.Items.TryGetValue("OpenIdConnectAuthenticationRequestUrl", out var value);
+            var isRequestCreated = HttpContext.Items.TryGetValue(
+                Constants.Authentication.RequestUrl, 
+                out var value);
 
             if (!isRequestCreated)
                 throw new Exception("AuthenticationRequestUrl is not available.");

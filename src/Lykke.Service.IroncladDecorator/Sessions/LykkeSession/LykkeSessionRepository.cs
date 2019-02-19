@@ -1,11 +1,10 @@
 ﻿using System;
 using System.Threading.Tasks;
 using Lykke.Service.IroncladDecorator.Settings;
-using Lykke.Service.IroncladDecorator.UserSession;
 using Microsoft.AspNetCore.DataProtection;
 using Microsoft.Extensions.Caching.Distributed;
 
-namespace Lykke.Service.IroncladDecorator.LykkeSession
+namespace Lykke.Service.IroncladDecorator.Sessions
 {
     internal class LykkeSessionRepository : ILykkeSessionRepository
     {

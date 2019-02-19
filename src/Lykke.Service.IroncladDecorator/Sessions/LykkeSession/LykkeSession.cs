@@ -1,6 +1,4 @@
-﻿using Lykke.Service.IroncladDecorator.UserSession;
-
-namespace Lykke.Service.IroncladDecorator.LykkeSession
+﻿namespace Lykke.Service.IroncladDecorator.Sessions
 {
     public class LykkeSession
     {
