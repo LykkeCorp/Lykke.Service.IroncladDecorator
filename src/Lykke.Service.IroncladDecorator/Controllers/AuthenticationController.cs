@@ -15,8 +15,8 @@ namespace Lykke.Service.IroncladDecorator.Controllers
         {
             switch (platform)
             {
-                case "android":
-                case "ios":
+                case Constants.Platforms.Android:
+                case Constants.Platforms.Ios:
                     await HttpContext.ChallengeAsync(platform);
                     break;
                 default:

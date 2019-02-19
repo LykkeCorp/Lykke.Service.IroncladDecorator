@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Net.Http;
-using IdentityModel;
 using IdentityModel.Client;
 using JetBrains.Annotations;
 using Lykke.Sdk;
@@ -41,26 +40,28 @@ namespace Lykke.Service.IroncladDecorator
                 options.Extend = (sc, settings) =>
                 {
                     var currentSettings = settings.CurrentValue;
-            
-                    var ironcladIdp = currentSettings.IroncladDecoratorService.IroncladSettings.IroncladIdp;
+
+                    var ironcladAuthority = currentSettings.IroncladDecoratorService.IroncladSettings.IroncladIdp.Authority;
 
                     sc.AddAuthentication(
                             authOptions =>
                             {
-                                authOptions.DefaultScheme = "Cookies";
+                                authOptions.DefaultScheme = Constants.Cookies.DefaultSignInCookie;
+                                //TODO: think how to handle unauthorized.
                                 authOptions.DefaultChallengeScheme = "oidc";
                             })
-                        .AddCookie("Cookies")
-                        .AddMobileClient("android",
-                            currentSettings.IroncladDecoratorService.IroncladSettings.AndroidClient)
-                        .AddMobileClient("ios", currentSettings.IroncladDecoratorService.IroncladSettings.IosClient);
+                        .AddCookie(Constants.Cookies.DefaultSignInCookie)
+                        .AddMobileClient(Constants.Platforms.Android,
+                            currentSettings.IroncladDecoratorService.IroncladSettings.AndroidClient, ironcladAuthority)
+                        .AddMobileClient(Constants.Platforms.Ios,
+                            currentSettings.IroncladDecoratorService.IroncladSettings.IosClient, ironcladAuthority);
 
                     sc.AddHttpContextAccessor();
 
-                    services.AddLykkeAzureBlobDataProtection(
+                    sc.AddLykkeAzureBlobDataProtection(
                         currentSettings.IroncladDecoratorService.Db.DataProtectionSettings);
 
-                    services.AddDistributedRedisCache(cacheOptions =>
+                    sc.AddDistributedRedisCache(cacheOptions =>
                     {
                         cacheOptions.Configuration = currentSettings.IroncladDecoratorService.Db.RedisConnString;
                     });
@@ -70,7 +71,7 @@ namespace Lykke.Service.IroncladDecorator
                     sc.AddSingleton<IDiscoveryCache>(r =>
                     {
                         var factory = r.GetRequiredService<IHttpClientFactory>();
-                        return new DiscoveryCache(ironcladIdp.Authority, () => factory.CreateClient(),
+                        return new DiscoveryCache(ironcladAuthority, () => factory.CreateClient(),
                             new DiscoveryPolicy
                             {
                                 ValidateIssuerName = false

@@ -12,7 +12,8 @@ namespace Lykke.Service.IroncladDecorator.Extensions
         public static AuthenticationBuilder AddMobileClient(
             this AuthenticationBuilder builder,
             string scheme,
-            IdentityProviderClientSettings clientSettings)
+            OpenIdClientSettings clientSettings,
+            string authority)
         {
             return builder.AddOpenIdConnect(scheme, options =>
             {
@@ -20,7 +21,7 @@ namespace Lykke.Service.IroncladDecorator.Extensions
 
                 options.ClaimActions.MapAll();
 
-                options.SignInScheme = "Cookies";
+                options.SignInScheme = Constants.Cookies.DefaultSignInCookie;
 
                 options.DisableTelemetry = true;
 
@@ -29,11 +30,9 @@ namespace Lykke.Service.IroncladDecorator.Extensions
                 options.EventsType = typeof(CustomOpenIdConnectEvents);
 
                 // Set unique callback path for every provider to eliminate intersection.
-                options.CallbackPath = string.IsNullOrWhiteSpace(clientSettings.CallbackPath)
-                    ? $"/signin-oidc-{clientSettings.Id}"
-                    : clientSettings.CallbackPath;
+                options.CallbackPath = clientSettings.CallbackPath;
 
-                options.Authority = clientSettings.Authority;
+                options.Authority = authority;
 
                 options.ClientId = clientSettings.ClientId;
 

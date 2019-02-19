@@ -65,7 +65,7 @@ namespace Lykke.Service.IroncladDecorator.Controllers
            
             var authCode = HttpContext.Request.Query["code"];
 
-            var tokens = await GetTokens(authCode, _ironcladSettings.AuthClient, Url.AbsoluteAction("SigninCallback", "Callback"));
+            var tokens = await GetTokens(authCode);
 
             var userId = GetUserId(tokens.IdentityToken);
 
@@ -148,7 +148,7 @@ namespace Lykke.Service.IroncladDecorator.Controllers
             return sub?.Value;
         }
 
-        private async Task<TokenData> GetTokens(string authCode, IdentityProviderClientSettings clientSettings, string redirectUri)
+        private async Task<TokenData> GetTokens(string authCode)
         {
             var httpClient = _httpClientFactory.CreateClient();
 
@@ -164,9 +164,9 @@ namespace Lykke.Service.IroncladDecorator.Controllers
             {
                 Address = discoveryResponse.TokenEndpoint,
                 Code = authCode,
-                ClientId = clientSettings.ClientId,
-                ClientSecret = clientSettings.ClientSecret,
-                RedirectUri = redirectUri
+                ClientId =  _ironcladSettings.AuthClient.ClientId,
+                ClientSecret = _ironcladSettings.AuthClient.ClientSecret,
+                RedirectUri = Url.AbsoluteAction("SigninCallback", "Callback")
             });
 
             if (tokenResponse.IsError)
