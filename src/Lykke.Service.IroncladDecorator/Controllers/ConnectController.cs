@@ -44,9 +44,7 @@ namespace Lykke.Service.IroncladDecorator.Controllers
             if (!string.IsNullOrEmpty(error))
                 return BadRequest(error);
 
-            var query = GetQueryString();
-
-            query = await AdaptQueryStringAsync(query);
+            var query = await AdaptQueryStringAsync(Request.QueryString.Value);
 
             return await RedirectToExternalProvider(query);
         }
@@ -73,7 +71,6 @@ namespace Lykke.Service.IroncladDecorator.Controllers
             }
             return await Task.FromResult(string.Empty);
         }
-
 
         private async Task<ActionResult> RedirectToExternalProvider(string query)
         {
@@ -111,14 +108,11 @@ namespace Lykke.Service.IroncladDecorator.Controllers
 
         private async Task SaveAuthorizeQueryString(string query)
         {
-            var userSession = new UserSession();
-            userSession.Set("AuthorizeQueryString", query);
+            var userSession = new UserSession
+            {
+                AuthorizeQuery = query
+            };
             await _userSessionManager.SetUserSession(userSession);
-        }
-
-        private string GetQueryString()
-        {
-            return Request.QueryString.Value;
         }
     }
 }
