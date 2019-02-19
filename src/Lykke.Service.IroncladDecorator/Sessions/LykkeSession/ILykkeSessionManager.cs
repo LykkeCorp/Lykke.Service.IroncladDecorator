@@ -7,5 +7,6 @@ namespace Lykke.Service.IroncladDecorator.Sessions
         Task<LykkeSession> GetActiveAsync(string oldLykkeToken);
 
         Task SetAsync(LykkeSession session);
+        Task CreateAsync(string oldLykkeToken, TokenData tokens);
     }
 }

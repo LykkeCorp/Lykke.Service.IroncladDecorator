@@ -12,28 +12,26 @@ namespace Lykke.Service.IroncladDecorator.Sessions
 
         public TokenData(TokenResponse tokenResponse)
         {
-            IdentityToken = tokenResponse.IdentityToken;
+            IdentityToken = new IdentityToken(tokenResponse.IdentityToken);
             AccessToken = tokenResponse.AccessToken;
             RefreshToken = tokenResponse.RefreshToken;
             TokenType = tokenResponse.TokenType;
             ExpiresIn = tokenResponse.ExpiresIn;
-            //TODO Refactor to factory.
             ExpiresAt = DateTimeOffset.UtcNow.AddSeconds(tokenResponse.ExpiresIn);
         }
 
         public TokenData(OpenIdConnectMessage tokenResponse)
         {
             var expiresIn = Convert.ToInt32(tokenResponse.ExpiresIn);
-            IdentityToken = tokenResponse.IdToken;
+            IdentityToken = new IdentityToken(tokenResponse.IdToken);
             AccessToken = tokenResponse.AccessToken;
             RefreshToken = tokenResponse.RefreshToken;
             TokenType = tokenResponse.TokenType;
             ExpiresIn = expiresIn;
-            //TODO Refactor to factory.
             ExpiresAt = DateTimeOffset.UtcNow.AddSeconds(expiresIn);
         }
 
-        public string IdentityToken { get; set; }
+        public IdentityToken IdentityToken { get; set; }
         public string AccessToken { get; set; }
         public string RefreshToken { get; set; }
         public string TokenType { get; set; }

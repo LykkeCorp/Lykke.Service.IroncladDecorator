@@ -149,14 +149,14 @@ namespace Lykke.Service.IroncladDecorator.Controllers
             var session = await _userSessionRepository.GetAsync(sessionId);
             if (session == null) return Unauthorized();
 
-            var oldLykkeToken = session.Get<string>("OldLykkeToken");
+            var oldLykkeToken = session.OldLykkeToken;
             if (oldLykkeToken == null) return Unauthorized();
 
-            var lykkeClientId = session.Get<string>("LykkeClientId");
+            var lykkeClientId = session.LykkeClientId;
 
             var clientAccount = await _clientAccountClient.GetByIdAsync(lykkeClientId);
 
-            var authId = session.Get<string>("AuthId");
+            var authId = session.AuthId;
 
             return new JsonResult(new
             {
