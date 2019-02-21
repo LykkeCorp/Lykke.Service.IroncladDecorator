@@ -1,5 +1,7 @@
-﻿using System.Linq;
+﻿using System.Collections.Generic;
+using System.Linq;
 using Microsoft.AspNetCore.Http;
+using Microsoft.IdentityModel.Protocols.OpenIdConnect;
 
 namespace Lykke.Service.IroncladDecorator.Extensions
 {
@@ -23,6 +25,12 @@ namespace Lykke.Service.IroncladDecorator.Extensions
             var token = authHeader.Substring(BearerPrefix.Length);
 
             return token;
+        }
+
+        public static OpenIdConnectMessage GetOpenIdConnectMessage(this HttpContext context)
+        {
+            return new OpenIdConnectMessage(context.Request.Query.Select(pair =>
+                new KeyValuePair<string, string[]>(pair.Key, pair.Value)));
         }
     }
 }

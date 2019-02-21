@@ -4,6 +4,7 @@ using AzureStorage.Tables;
 using Lykke.Common.Log;
 using Lykke.Service.ClientAccount.Client;
 using Lykke.Service.IroncladDecorator.Clients;
+using Lykke.Service.IroncladDecorator.OpenIdConnect;
 using Lykke.Service.IroncladDecorator.Sessions;
 using Lykke.Service.IroncladDecorator.Settings;
 using Lykke.Service.Session.Client;
@@ -25,12 +26,14 @@ namespace Lykke.Service.IroncladDecorator.Modules
         {
             builder.Register(c => _appSettings.CurrentValue.IroncladDecoratorService.IroncladSettings);
             builder.Register(c => _appSettings.CurrentValue.IroncladDecoratorService.LifetimeSettings);
+            builder.Register(c => _appSettings.CurrentValue.IroncladDecoratorService.ValidationSettings);
 
             builder.RegisterType<UserSessionManager>()
                 .As<IUserSessionManager>()
                 .SingleInstance();            
             
             builder.RegisterType<LykkeSessionManager>().As<ILykkeSessionManager>().SingleInstance();
+            builder.RegisterType<OpenIdValidators>().As<IOpenIdValidators>().SingleInstance();
 
             RegisterRepositories(builder);
 

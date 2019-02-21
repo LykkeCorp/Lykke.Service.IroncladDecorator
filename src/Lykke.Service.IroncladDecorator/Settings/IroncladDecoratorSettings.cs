@@ -8,5 +8,6 @@ namespace Lykke.Service.IroncladDecorator.Settings
         public DbSettings Db { get; set; }
         public LifetimeSettings LifetimeSettings { get; set; }
         public IroncladSettings IroncladSettings { get; set; }
+        public ValidationSettings ValidationSettings { get; set; }
     }
 }

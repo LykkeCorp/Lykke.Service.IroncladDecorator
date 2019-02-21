@@ -15,7 +15,7 @@ using Lykke.Service.IroncladDecorator.Settings;
 using Lykke.Service.Session.Client;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.AspNetCore.WebUtilities;
+using Microsoft.IdentityModel.Protocols.OpenIdConnect;
 
 namespace Lykke.Service.IroncladDecorator.Controllers
 {
@@ -31,6 +31,7 @@ namespace Lykke.Service.IroncladDecorator.Controllers
         private readonly ILog _log;
         private readonly IUserSessionManager _userSessionManager;
         private readonly ILykkeSessionManager _lykkeSessionManager;
+        private readonly IOpenIdValidators _openIdValidators;
 
         public CallbackController(
             IUserSessionManager userSessionManager,
@@ -39,7 +40,8 @@ namespace Lykke.Service.IroncladDecorator.Controllers
             IHttpClientFactory httpClientFactory,
             IDiscoveryCache discoveryCache,
             IroncladSettings ironcladSettings,
-            ILykkeSessionManager lykkeSessionManager)
+            ILykkeSessionManager lykkeSessionManager,
+            IOpenIdValidators openIdValidators)
         {
             _clientSessionsClient = clientSessionsClient;
             _userSessionManager = userSessionManager;
@@ -48,6 +50,7 @@ namespace Lykke.Service.IroncladDecorator.Controllers
             _discoveryCache = discoveryCache;
             _ironcladSettings = ironcladSettings;
             _lykkeSessionManager = lykkeSessionManager;
+            _openIdValidators = openIdValidators;
         }
 
         [HttpGet]
@@ -62,14 +65,24 @@ namespace Lykke.Service.IroncladDecorator.Controllers
                 _log.Warning(SessinNotExistMessage);
                 return BadRequest(SessinNotExistMessage);
             }
-           
-            var authCode = HttpContext.Request.Query["code"];
 
-            var tokens = await GetTokens(authCode);
+            var authenticationResponse = HttpContext.GetOpenIdConnectMessage();
+            
+            var authCode = authenticationResponse.Code;
+            
+            _openIdValidators.ValidateWebClientAuthenticationResponse(userSession, authenticationResponse);
+            
+            var tokenResponse = await GetTokenResponse(authCode);
 
-            await SignInToLykkeAsync(tokens.IdentityToken, userSession, tokens);
+            var tokenData = new TokenData(tokenResponse);
+
+            await _openIdValidators.ValidateWebClientTokenResponseAsync(userSession, tokenResponse);
+            
+            var userId = GetUserId(tokenData.IdentityToken);
 
             var query = userSession.AuthorizeQuery;
+
+            await SignInToLykkeAsync(tokens.IdentityToken, userSession, tokens);
 
             var redirectUri = BuildFragmentRedirectUri(query, tokens);
 
@@ -80,11 +93,20 @@ namespace Lykke.Service.IroncladDecorator.Controllers
         private async Task SignInToLykkeAsync(IdentityToken identityToken, UserSession userSession, TokenData tokens)
         {
             var authResult = await _clientSessionsClient.Authenticate(identityToken.UserId, "hobbit");
+            SaveTokensToUserSession(userSession, tokenData);
+
+            await SaveLykkeSession(authResult.SessionToken, tokenData);
 
             userSession.SaveAuthResult(authResult, tokens);
             await _userSessionManager.SetUserSession(userSession);
 
             await _lykkeSessionManager.CreateAsync(authResult.SessionToken, tokens);
+
+            //TODO:@gafanasiev Remove
+            // var redirectUri = BuildFragmentRedirectUri(userSession, tokenData);
+
+            // _log.Info("Redirecting to client app redirect uri. RedirectUri:{RedirectUri}", redirectUri);
+            // return Redirect(redirectUri);
         }
 
         [HttpGet]
@@ -127,7 +149,7 @@ namespace Lykke.Service.IroncladDecorator.Controllers
             await SignInToLykkeAsync(tokens.IdentityToken, userSession, tokens);
         }
 
-        private async Task<TokenData> GetTokens(string authCode)
+        private async Task<TokenResponse> GetTokenResponse(string authCode)
         {
             var httpClient = _httpClientFactory.CreateClient();
 
@@ -151,17 +173,37 @@ namespace Lykke.Service.IroncladDecorator.Controllers
             if (tokenResponse.IsError)
                 throw new Exception(tokenResponse.Error);
 
-            return new TokenData(tokenResponse);
+            return tokenResponse;
         }
 
+        // TODO:@gafanasiev Remove
+        // private void SaveAuthResult(UserSession userUserSession, IClientSession clientSession)
+        // {
+        //     userUserSession.Set("OldLykkeToken", clientSession.SessionToken);
+        //     userUserSession.Set("AuthId", clientSession.AuthId);
+        //     userUserSession.Set("LykkeClientId", clientSession.ClientId);
+        // }
+
+        // private Task SaveLykkeSession(string oldLykkeToken, TokenData tokens)
+        // {
+        //     var lykkeSession = new LykkeSession(oldLykkeToken, tokens);
+        //     return _lykkeSessionManager.SetAsync(lykkeSession);
+        // }
+
+        // private void SaveTokensToUserSession(UserSession userSession, TokenData tokens)
+        // {
+        //     _log.Info("Start saving tokens. TokenResponse:{TokenResponse}", tokens);
+        //     userSession.Set("IroncladTokenResponse", tokens);
+        // }
+
         private string BuildFragmentRedirectUri(
-            string query,
+            UserSession userSession,
             TokenData tokens)
         {
             _log.Info("Start building fragment redirect uri.");
-            if (string.IsNullOrWhiteSpace(query))
+            if (userSession == null)
             {
-                _log.Warning("Query string is empty!");
+                _log.Warning("No user session!");
                 return null;
             }
 
@@ -171,24 +213,23 @@ namespace Lykke.Service.IroncladDecorator.Controllers
                 return null;
             }
 
-            var parameters = QueryHelpers.ParseQuery(query);
+            var originalAuthorizationRequest = userSession.Get<OpenIdConnectMessage>("AuthorizationRequest");
 
-            parameters.TryGetValue(OidcConstants.AuthorizeRequest.RedirectUri, out var redirectUri);
-
-            parameters.TryGetValue(OidcConstants.AuthorizeResponse.State, out var state);
+            var redirectUri = originalAuthorizationRequest.RedirectUri;
+            
+            var state = originalAuthorizationRequest.State;
 
             if (string.IsNullOrEmpty(redirectUri) || string.IsNullOrEmpty(state))
                 return null;
 
             var dict = new Dictionary<string, string>
             {
-                {OidcConstants.AuthorizeRequest.State, state}
+                {OidcConstants.AuthorizeRequest.State, state},
+                {OidcConstants.TokenResponse.IdentityToken, tokens.IdentityToken.Source},
+                {OidcConstants.TokenResponse.AccessToken, tokens.AccessToken},
+                {OidcConstants.AuthorizeResponse.ExpiresIn, tokens.ExpiresIn.ToString()},
+                {OidcConstants.TokenResponse.TokenType, tokens.TokenType}
             };
-
-            dict[OidcConstants.TokenResponse.IdentityToken] = tokens.IdentityToken.Source;
-            dict[OidcConstants.TokenResponse.AccessToken] = tokens.AccessToken;
-            dict[OidcConstants.AuthorizeResponse.ExpiresIn] = tokens.ExpiresIn.ToString();
-            dict[OidcConstants.TokenResponse.TokenType] = tokens.TokenType;
 
             var queryString = QueryString.Create(dict);
 
