@@ -46,6 +46,18 @@ namespace Lykke.Service.IroncladDecorator.Controllers
 
             var query = await AdaptQueryStringAsync(Request.QueryString.Value);
 
+            var userSession = new UserSession();
+
+            var authorizationRequest = HttpContext.GetOpenIdConnectMessage();
+
+            userSession.Set("AuthorizationRequest", authorizationRequest);
+
+            var query = GetQueryString();
+
+            query = AdaptQueryString(query);
+
+            await _userSessionManager.SetUserSession(userSession);
+
             return await RedirectToExternalProvider(query);
         }
 
@@ -71,7 +83,7 @@ namespace Lykke.Service.IroncladDecorator.Controllers
             }
             return await Task.FromResult(string.Empty);
         }
-
+        
         private async Task<ActionResult> RedirectToExternalProvider(string query)
         {
             var discoveryResponse = await _discoveryCache.GetAsync();
@@ -87,6 +99,22 @@ namespace Lykke.Service.IroncladDecorator.Controllers
                 $"Redirect URI substitued, trying to proxy to external provider on {externalAuthorizeUrl}");
 
             return Redirect(externalAuthorizeUrl);
+        }
+
+        private string AdaptQueryString(string query)
+        {
+            var clientRedirectUri = Request.Query[OidcConstants.AuthorizeRequest.RedirectUri];
+
+            var clientRedirectUriEncoded = HttpUtility.UrlEncode(clientRedirectUri);
+            var signinCallback = Url.AbsoluteAction("SigninCallback", "Callback");
+            var signinCallbackEncoded = HttpUtility.UrlEncode(signinCallback);
+            query = Regex.Replace(query, clientRedirectUriEncoded,
+                signinCallbackEncoded ?? throw new InvalidOperationException(), RegexOptions.IgnoreCase);
+
+            var responseType = Request.Query[OidcConstants.AuthorizeRequest.ResponseType];
+            query = Regex.Replace(query, responseType, "code", RegexOptions.IgnoreCase);
+
+            return query;
         }
 
         private async Task<string> AdaptQueryStringAsync(string query)
