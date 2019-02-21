@@ -1,26 +1,35 @@
-﻿using System.Security.Cryptography;
+﻿using System;
+using System.Security.Cryptography;
 using System.Text;
+using MessagePack;
 using Microsoft.AspNetCore.DataProtection;
-using Newtonsoft.Json;
 
 namespace Lykke.Service.IroncladDecorator.Sessions
 {
-    internal static class ProtectionUtils
+    public static class ProtectionUtils
     {
         public static string SerializeAndProtect<T>(T value, IDataProtector dataProtector)
         {
-            var serialized = JsonConvert.SerializeObject(value);
+            var serializedBytes = MessagePackSerializer.Serialize(value);
 
-            return dataProtector.Protect(serialized);
+            var protectedBytes = dataProtector.Protect(serializedBytes);
+
+            var protectedString = Convert.ToBase64String(protectedBytes);
+
+            return protectedString;
         }
 
         public static T DeserializeAndUnprotect<T>(string value, IDataProtector dataProtector)
         {
             try
             {
-                var unprotected = dataProtector.Unprotect(value);
+                var protectedBytes = Convert.FromBase64String(value);
 
-                return JsonConvert.DeserializeObject<T>(unprotected);
+                var unprotectedString = dataProtector.Unprotect(protectedBytes);
+
+                var deserializedString = MessagePackSerializer.Deserialize<T>(unprotectedString);
+
+                return deserializedString;
             }
             catch (CryptographicException)
             {

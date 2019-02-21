@@ -4,7 +4,7 @@ namespace Lykke.Service.IroncladDecorator.Sessions
 {
     public interface IUserSessionRepository
     {
-        Task SetAsync(UserSession userUserSession);
+        Task SetAsync(UserSession userSession);
 
         Task<UserSession> GetAsync(string id);
 

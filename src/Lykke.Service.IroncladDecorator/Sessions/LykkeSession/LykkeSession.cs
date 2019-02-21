@@ -1,5 +1,8 @@
-﻿namespace Lykke.Service.IroncladDecorator.Sessions
-{
+﻿using MessagePack;
+
+namespace Lykke.Service.IroncladDecorator.Sessions
+{ 
+    [MessagePackObject(true)]
     public class LykkeSession
     {
         public string OldLykkeToken { get; set; }

@@ -1,7 +1,5 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.Threading.Tasks;
-using Autofac.Core.Lifetime;
 using Lykke.Service.IroncladDecorator.Settings;
 using Microsoft.AspNetCore.DataProtection;
 using Microsoft.Extensions.Caching.Distributed;
@@ -32,17 +30,17 @@ namespace Lykke.Service.IroncladDecorator.Sessions
             };
         }
 
-        public Task SetAsync(UserSession userUserSession)
+        public Task SetAsync(UserSession userSession)
         {
-            if (userUserSession == null)
-                throw new ArgumentNullException(nameof(userUserSession));
+            if (userSession == null)
+                throw new ArgumentNullException(nameof(userSession));
 
-            var id = userUserSession.Id;
+            var id = userSession.Id;
 
             if (string.IsNullOrWhiteSpace(id))
                 throw new ArgumentException("Session id is empty.");
 
-            var session = ProtectionUtils.SerializeAndProtect(userUserSession.Data, _dataProtector);
+            var session = ProtectionUtils.SerializeAndProtect(userSession, _dataProtector);
 
             return _distributedCache.SetStringAsync(GetSessionKey(id), session, _cacheEntryOptions);
         }
@@ -54,9 +52,9 @@ namespace Lykke.Service.IroncladDecorator.Sessions
             if (string.IsNullOrWhiteSpace(value))
                 return null;
 
-            var data = ProtectionUtils.DeserializeAndUnprotect<IDictionary<string, string>>(value, _dataProtector);
+            var userSession = ProtectionUtils.DeserializeAndUnprotect<UserSession>(value, _dataProtector);
 
-            return new UserSession(id, data);
+            return userSession;
         }
 
         public Task DeleteAsync(string id)

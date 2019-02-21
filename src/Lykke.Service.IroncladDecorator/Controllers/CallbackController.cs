@@ -67,7 +67,7 @@ namespace Lykke.Service.IroncladDecorator.Controllers
 
             var tokens = await GetTokens(authCode);
 
-            await SignInToLykke(tokens.IdentityToken, userSession, tokens);
+            await SignInToLykkeAsync(tokens.IdentityToken, userSession, tokens);
 
             var query = userSession.AuthorizeQuery;
 
@@ -77,7 +77,7 @@ namespace Lykke.Service.IroncladDecorator.Controllers
             return Redirect(redirectUri);
         }
 
-        private async Task SignInToLykke(IdentityToken identityToken, UserSession userSession, TokenData tokens)
+        private async Task SignInToLykkeAsync(IdentityToken identityToken, UserSession userSession, TokenData tokens)
         {
             var authResult = await _clientSessionsClient.Authenticate(identityToken.UserId, "hobbit");
 
@@ -124,7 +124,7 @@ namespace Lykke.Service.IroncladDecorator.Controllers
             
             var userSession = await _userSessionManager.GetUserSession() ?? new UserSession();
 
-            await SignInToLykke(tokens.IdentityToken, userSession, tokens);
+            await SignInToLykkeAsync(tokens.IdentityToken, userSession, tokens);
         }
 
         private async Task<TokenData> GetTokens(string authCode)
