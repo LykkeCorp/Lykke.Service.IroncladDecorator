@@ -1,8 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.IdentityModel.Tokens.Jwt;
-using System.Linq;
-using System.Net.Http;
 using System.Threading.Tasks;
 using Common.Log;
 using IdentityModel;
@@ -11,11 +8,9 @@ using Lykke.Common.Log;
 using Lykke.Service.IroncladDecorator.Extensions;
 using Lykke.Service.IroncladDecorator.Sessions;
 using Lykke.Service.IroncladDecorator.OpenIdConnect;
-using Lykke.Service.IroncladDecorator.Settings;
 using Lykke.Service.Session.Client;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.IdentityModel.Protocols.OpenIdConnect;
 
 namespace Lykke.Service.IroncladDecorator.Controllers
 {
@@ -25,32 +20,26 @@ namespace Lykke.Service.IroncladDecorator.Controllers
     {
         private const string SessinNotExistMessage = "User session does not exist.";
         private readonly IClientSessionsClient _clientSessionsClient;
-        private readonly IDiscoveryCache _discoveryCache;
-        private readonly IroncladSettings _ironcladSettings;
-        private readonly IHttpClientFactory _httpClientFactory;
+        private readonly IIroncladFacade _ironcladFacade;
         private readonly ILog _log;
         private readonly IUserSessionManager _userSessionManager;
         private readonly ILykkeSessionManager _lykkeSessionManager;
-        private readonly IOpenIdValidators _openIdValidators;
+        private readonly ITokenValidationParametersFactory _tokenValidationParametersFactory;
 
         public CallbackController(
             IUserSessionManager userSessionManager,
             ILogFactory logFactory,
             IClientSessionsClient clientSessionsClient,
-            IHttpClientFactory httpClientFactory,
-            IDiscoveryCache discoveryCache,
-            IroncladSettings ironcladSettings,
+            IIroncladFacade ironcladFacade,
             ILykkeSessionManager lykkeSessionManager,
-            IOpenIdValidators openIdValidators)
+            ITokenValidationParametersFactory tokenValidationParametersFactory)
         {
             _clientSessionsClient = clientSessionsClient;
             _userSessionManager = userSessionManager;
             _log = logFactory.CreateLog(this);
-            _httpClientFactory = httpClientFactory;
-            _discoveryCache = discoveryCache;
-            _ironcladSettings = ironcladSettings;
+            _ironcladFacade = ironcladFacade;
             _lykkeSessionManager = lykkeSessionManager;
-            _openIdValidators = openIdValidators;
+            _tokenValidationParametersFactory = tokenValidationParametersFactory;
         }
 
         [HttpGet]
@@ -66,47 +55,36 @@ namespace Lykke.Service.IroncladDecorator.Controllers
                 return BadRequest(SessinNotExistMessage);
             }
 
-            var authenticationResponse = HttpContext.GetOpenIdConnectMessage();
+            var authenticationResponseContext = new AuthenticationResponseContext(HttpContext.GetOpenIdConnectMessage());
             
-            var authCode = authenticationResponse.Code;
-            
-            _openIdValidators.ValidateWebClientAuthenticationResponse(userSession, authenticationResponse);
+            var authCode = authenticationResponseContext.Code;
+
+            authenticationResponseContext.Validate(userSession.AuthorizationRequestContext);
             
             var tokenResponse = await GetTokenResponse(authCode);
 
-            var tokenData = new TokenData(tokenResponse);
+            var tokenData = await ValidateTokenResponse(userSession.AuthorizationRequestContext, tokenResponse);
+           
+            await SignInToLykkeAsync(tokenData.IdentityToken, userSession, tokenData);
 
-            await _openIdValidators.ValidateWebClientTokenResponseAsync(userSession, tokenResponse);
-            
-            var userId = GetUserId(tokenData.IdentityToken);
-
-            var query = userSession.AuthorizeQuery;
-
-            await SignInToLykkeAsync(tokens.IdentityToken, userSession, tokens);
-
-            var redirectUri = BuildFragmentRedirectUri(query, tokens);
+            var redirectUri = BuildFragmentRedirectUri(userSession, tokenData);
 
             _log.Info("Redirecting to client app redirect uri. RedirectUri:{RedirectUri}", redirectUri);
+
             return Redirect(redirectUri);
         }
 
         private async Task SignInToLykkeAsync(IdentityToken identityToken, UserSession userSession, TokenData tokens)
         {
             var authResult = await _clientSessionsClient.Authenticate(identityToken.UserId, "hobbit");
-            SaveTokensToUserSession(userSession, tokenData);
 
-            await SaveLykkeSession(authResult.SessionToken, tokenData);
+            await SaveLykkeSession(authResult.SessionToken, tokens);
 
             userSession.SaveAuthResult(authResult, tokens);
+
             await _userSessionManager.SetUserSession(userSession);
 
             await _lykkeSessionManager.CreateAsync(authResult.SessionToken, tokens);
-
-            //TODO:@gafanasiev Remove
-            // var redirectUri = BuildFragmentRedirectUri(userSession, tokenData);
-
-            // _log.Info("Redirecting to client app redirect uri. RedirectUri:{RedirectUri}", redirectUri);
-            // return Redirect(redirectUri);
         }
 
         [HttpGet]
@@ -149,52 +127,36 @@ namespace Lykke.Service.IroncladDecorator.Controllers
             await SignInToLykkeAsync(tokens.IdentityToken, userSession, tokens);
         }
 
-        private async Task<TokenResponse> GetTokenResponse(string authCode)
+        private Task<TokenResponse> GetTokenResponse(string authCode)
         {
-            var httpClient = _httpClientFactory.CreateClient();
-
-            var discoveryResponse = await _discoveryCache.GetAsync();
-
-            if (discoveryResponse.IsError)
-            {
-                _discoveryCache.Refresh();
-                throw new Exception(discoveryResponse.Error);
-            }
-
-            var tokenResponse = await httpClient.RequestAuthorizationCodeTokenAsync(new AuthorizationCodeTokenRequest
-            {
-                Address = discoveryResponse.TokenEndpoint,
-                Code = authCode,
-                ClientId =  _ironcladSettings.AuthClient.ClientId,
-                ClientSecret = _ironcladSettings.AuthClient.ClientSecret,
-                RedirectUri = Url.AbsoluteAction("SigninCallback", "Callback")
-            });
-
-            if (tokenResponse.IsError)
-                throw new Exception(tokenResponse.Error);
-
-            return tokenResponse;
+            return _ironcladFacade.RedeemAuthorizationCodeAsync(
+                authCode,
+                Url.AbsoluteAction("SigninCallback", "Callback")
+            );
         }
 
-        // TODO:@gafanasiev Remove
-        // private void SaveAuthResult(UserSession userUserSession, IClientSession clientSession)
-        // {
-        //     userUserSession.Set("OldLykkeToken", clientSession.SessionToken);
-        //     userUserSession.Set("AuthId", clientSession.AuthId);
-        //     userUserSession.Set("LykkeClientId", clientSession.ClientId);
-        // }
+        private async Task<TokenData> ValidateTokenResponse(
+            AuthorizationRequestContext authorizationRequestContext,
+            TokenResponse tokenResponse)
+        {
+            var tokenResponseContext = new TokenResponseContext(tokenResponse);
 
-        // private Task SaveLykkeSession(string oldLykkeToken, TokenData tokens)
-        // {
-        //     var lykkeSession = new LykkeSession(oldLykkeToken, tokens);
-        //     return _lykkeSessionManager.SetAsync(lykkeSession);
-        // }
+            var discoveryResponse = await _ironcladFacade.GetDiscoveryResponseAsync();
 
-        // private void SaveTokensToUserSession(UserSession userSession, TokenData tokens)
-        // {
-        //     _log.Info("Start saving tokens. TokenResponse:{TokenResponse}", tokens);
-        //     userSession.Set("IroncladTokenResponse", tokens);
-        // }
+            var keys = discoveryResponse.GetSecurityKeys();
+
+            var validationParameters = _tokenValidationParametersFactory.CreateTokenValidationParameters(keys);
+
+            tokenResponseContext.Validate(authorizationRequestContext, validationParameters);
+
+            return new TokenData(tokenResponse);
+        }
+
+        private Task SaveLykkeSession(string oldLykkeToken, TokenData tokens)
+        {
+            var lykkeSession = new LykkeSession(oldLykkeToken, tokens);
+            return _lykkeSessionManager.SetAsync(lykkeSession);
+        }
 
         private string BuildFragmentRedirectUri(
             UserSession userSession,
@@ -213,7 +175,7 @@ namespace Lykke.Service.IroncladDecorator.Controllers
                 return null;
             }
 
-            var originalAuthorizationRequest = userSession.Get<OpenIdConnectMessage>("AuthorizationRequest");
+            var originalAuthorizationRequest = userSession.AuthorizationRequestContext;
 
             var redirectUri = originalAuthorizationRequest.RedirectUri;
             

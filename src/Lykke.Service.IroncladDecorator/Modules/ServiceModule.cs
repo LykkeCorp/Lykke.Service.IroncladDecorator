@@ -33,7 +33,8 @@ namespace Lykke.Service.IroncladDecorator.Modules
                 .SingleInstance();            
             
             builder.RegisterType<LykkeSessionManager>().As<ILykkeSessionManager>().SingleInstance();
-            builder.RegisterType<OpenIdValidators>().As<IOpenIdValidators>().SingleInstance();
+            builder.RegisterType<TokenValidationParametersFactory>().As<ITokenValidationParametersFactory>().SingleInstance();
+            builder.RegisterType<IroncladFacade>().As<IIroncladFacade>().SingleInstance();
 
             RegisterRepositories(builder);
 
