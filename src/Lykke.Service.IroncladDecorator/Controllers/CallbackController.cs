@@ -78,8 +78,6 @@ namespace Lykke.Service.IroncladDecorator.Controllers
         {
             var authResult = await _clientSessionsClient.Authenticate(identityToken.UserId, "hobbit");
 
-            await SaveLykkeSession(authResult.SessionToken, tokens);
-
             userSession.SaveAuthResult(authResult, tokens);
 
             await _userSessionManager.SetUserSession(userSession);
@@ -150,12 +148,6 @@ namespace Lykke.Service.IroncladDecorator.Controllers
             tokenResponseContext.Validate(authorizationRequestContext, validationParameters);
 
             return new TokenData(tokenResponse);
-        }
-
-        private Task SaveLykkeSession(string oldLykkeToken, TokenData tokens)
-        {
-            var lykkeSession = new LykkeSession(oldLykkeToken, tokens);
-            return _lykkeSessionManager.SetAsync(lykkeSession);
         }
 
         private string BuildFragmentRedirectUri(
