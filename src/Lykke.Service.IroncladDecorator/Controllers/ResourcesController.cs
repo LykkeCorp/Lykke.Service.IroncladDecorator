@@ -152,7 +152,7 @@ namespace Lykke.Service.IroncladDecorator.Controllers
             var oldLykkeToken = session.OldLykkeToken;
             if (oldLykkeToken == null) return Unauthorized();
 
-            var lykkeClientId = session.LykkeClientId;
+            var lykkeClientId = session.LykkeUserId;
 
             var clientAccount = await _clientAccountClient.GetByIdAsync(lykkeClientId);
 

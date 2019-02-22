@@ -9,9 +9,8 @@ namespace Lykke.Service.IroncladDecorator.Sessions
     {
         public string Id { get; set; }
         public string OldLykkeToken { get; set; }
-        public string LykkeClientId { get; set; }
+        public string LykkeUserId { get; set; }
         public Guid AuthId { get; set; }
-        public TokenData IroncladTokenResponse { get; set; }
         public string AuthorizeQuery { get; set; }
 
         public UserSession()
@@ -23,8 +22,7 @@ namespace Lykke.Service.IroncladDecorator.Sessions
         {
             OldLykkeToken = clientSession.SessionToken;
             AuthId = clientSession.AuthId;
-            LykkeClientId  = clientSession.ClientId;
-            IroncladTokenResponse = tokens;
+            LykkeUserId  = clientSession.ClientId;
         }
     }
 }
