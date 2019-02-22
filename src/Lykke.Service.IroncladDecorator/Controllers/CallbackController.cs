@@ -57,11 +57,11 @@ namespace Lykke.Service.IroncladDecorator.Controllers
 
             var authenticationResponseContext = new AuthenticationResponseContext(HttpContext.GetOpenIdConnectMessage());
             
-            var authCode = authenticationResponseContext.Code;
-
             authenticationResponseContext.Validate(userSession.AuthorizationRequestContext);
-            
-            var tokenResponse = await GetTokenResponse(authCode);
+
+            var tokenResponse = await _ironcladFacade.RedeemAuthorizationCodeAsync(
+                authenticationResponseContext.Code, Url.AbsoluteAction("SigninCallback", "Callback")
+            );
 
             var tokenData = await ValidateTokenResponse(userSession.AuthorizationRequestContext, tokenResponse);
            
@@ -71,6 +71,36 @@ namespace Lykke.Service.IroncladDecorator.Controllers
 
             _log.Info("Redirecting to client app redirect uri. RedirectUri:{RedirectUri}", redirectUri);
 
+            return Redirect(redirectUri);
+        }
+
+        [HttpGet]
+        [Route("signin-oidc-old")]
+        public async Task<IActionResult> SigninCallbackOld()
+        {
+            _log.Info("Start getting user session for old client.");
+            var userSession = await _userSessionManager.GetUserSession();
+
+            if (userSession == null)
+            {
+                _log.Warning(SessinNotExistMessage);
+                return BadRequest(SessinNotExistMessage);
+            }
+            var authenticationResponseContext = new AuthenticationResponseContext(HttpContext.GetOpenIdConnectMessage());
+
+            authenticationResponseContext.Validate(userSession.AuthorizationRequestContext);
+
+            var tokenResponse = await _ironcladFacade.RedeemAuthorizationCodeAsync(
+                authenticationResponseContext.Code, Url.AbsoluteAction("SigninCallbackOld", "Callback")
+            );
+
+            var tokenData = await ValidateTokenResponse(userSession.AuthorizationRequestContext, tokenResponse);
+
+            await SignInToLykkeAsync(tokenData.IdentityToken, userSession, tokenData);
+
+            var redirectUri = BuildFragmentRedirectUriForOldClient(userSession);
+
+            _log.Info("Redirecting to client app redirect uri. RedirectUri:{RedirectUri}", redirectUri);
             return Redirect(redirectUri);
         }
 
@@ -123,14 +153,6 @@ namespace Lykke.Service.IroncladDecorator.Controllers
             var userSession = await _userSessionManager.GetUserSession() ?? new UserSession();
 
             await SignInToLykkeAsync(tokens.IdentityToken, userSession, tokens);
-        }
-
-        private Task<TokenResponse> GetTokenResponse(string authCode)
-        {
-            return _ironcladFacade.RedeemAuthorizationCodeAsync(
-                authCode,
-                Url.AbsoluteAction("SigninCallback", "Callback")
-            );
         }
 
         private async Task<TokenData> ValidateTokenResponse(
@@ -188,6 +210,40 @@ namespace Lykke.Service.IroncladDecorator.Controllers
             var queryString = QueryString.Create(dict);
 
             var uriBuilder = new UriBuilder(redirectUri) {Fragment = queryString.ToFragmentString()};
+
+            var resultUri = uriBuilder.Uri.AbsoluteUri;
+
+            return resultUri;
+        }
+
+        private string BuildFragmentRedirectUriForOldClient(UserSession userSession)
+        {
+            _log.Info("Start building fragment redirect uri.");
+            if (userSession == null)
+            {
+                _log.Warning("No user session!");
+                return null;
+            }
+
+            var originalAuthorizationRequest = userSession.AuthorizationRequestContext;
+
+            var redirectUri = originalAuthorizationRequest.RedirectUri;
+
+            var state = originalAuthorizationRequest.State;
+
+            if (string.IsNullOrEmpty(redirectUri) || string.IsNullOrEmpty(state))
+                return null;
+
+            var dict = new Dictionary<string, string>
+            {
+                {OidcConstants.AuthorizeRequest.State, state}
+            };
+
+            dict[OidcConstants.TokenResponse.AccessToken] = userSession.OldLykkeToken;
+
+            var queryString = QueryString.Create(dict);
+
+            var uriBuilder = new UriBuilder(redirectUri) { Fragment = queryString.ToFragmentString() };
 
             var resultUri = uriBuilder.Uri.AbsoluteUri;
 

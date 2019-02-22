@@ -2,6 +2,7 @@
 using Lykke.Service.IroncladDecorator.OpenIdConnect;
 using Lykke.Service.Session.Client;
 using MessagePack;
+using Microsoft.IdentityModel.Protocols.OpenIdConnect;
 
 namespace Lykke.Service.IroncladDecorator.Sessions
 {
@@ -17,6 +18,11 @@ namespace Lykke.Service.IroncladDecorator.Sessions
         public UserSession()
         {
             Id = Guid.NewGuid().ToString("N");
+        }
+
+        public UserSession(OpenIdConnectMessage requestMessage) : this()
+        {
+            AuthorizationRequestContext = new AuthorizationRequestContext(requestMessage);
         }
 
         public void SaveAuthResult(IClientSession clientSession, TokenData tokens)
