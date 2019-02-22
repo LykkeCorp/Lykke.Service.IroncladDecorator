@@ -5,10 +5,10 @@ using System.Threading.Tasks;
 using System.Web;
 using Common.Log;
 using IdentityModel;
-using IdentityModel.Client;
 using Lykke.Common.Log;
 using Lykke.Service.IroncladDecorator.Clients;
 using Lykke.Service.IroncladDecorator.Extensions;
+using Lykke.Service.IroncladDecorator.OpenIdConnect;
 using Lykke.Service.IroncladDecorator.Sessions;
 using Microsoft.AspNetCore.Mvc;
 
@@ -20,20 +20,20 @@ namespace Lykke.Service.IroncladDecorator.Controllers
     {
         private readonly ILog _log;
         private readonly IUserSessionManager _userSessionManager;
-        private readonly IDiscoveryCache _discoveryCache;
+        private readonly IIroncladFacade _ironcladFacade;
         private readonly IApplicationRepository _applicationRepository;
 
         public ConnectController(
             ILogFactory logFactory,
             IUserSessionManager userSessionManager,
-            IDiscoveryCache discoveryCache,
+            IIroncladFacade ironcladFacade,
             IApplicationRepository applicationRepository
         )
         {
             _applicationRepository = applicationRepository;
             _log = logFactory.CreateLog(this);
             _userSessionManager = userSessionManager;
-            _discoveryCache = discoveryCache;
+            _ironcladFacade = ironcladFacade;
         }
 
         [HttpGet]
@@ -44,17 +44,15 @@ namespace Lykke.Service.IroncladDecorator.Controllers
             if (!string.IsNullOrEmpty(error))
                 return BadRequest(error);
 
-            var query = await AdaptQueryStringAsync(Request.QueryString.Value);
-
             var userSession = new UserSession();
 
-            var authorizationRequest = HttpContext.GetOpenIdConnectMessage();
+            var requestMessage = HttpContext.GetOpenIdConnectMessage();
 
-            userSession.Set("AuthorizationRequest", authorizationRequest);
+            var authorizationRequest = new AuthorizationRequestContext(requestMessage);
 
-            var query = GetQueryString();
+            userSession.AuthorizationRequestContext = authorizationRequest;
 
-            query = AdaptQueryString(query);
+            var query = AdaptQueryString(Request.QueryString.Value);
 
             await _userSessionManager.SetUserSession(userSession);
 
@@ -77,22 +75,18 @@ namespace Lykke.Service.IroncladDecorator.Controllers
             {
                 return OidcConstants.AuthorizeRequest.ClientId + " not found.";
             }
+
             if (client.RedirectUri.Split(';').FirstOrDefault(x => x == clientRedirectUri) == null)
             {
                 return OidcConstants.AuthorizeRequest.RedirectUri + " is invalid";
             }
+
             return await Task.FromResult(string.Empty);
         }
-        
+
         private async Task<ActionResult> RedirectToExternalProvider(string query)
         {
-            var discoveryResponse = await _discoveryCache.GetAsync();
-
-            if (discoveryResponse.IsError)
-            {
-                _discoveryCache.Refresh();
-                throw new Exception(discoveryResponse.Error);
-            }
+            var discoveryResponse = await _ironcladFacade.GetDiscoveryResponseAsync();
 
             var externalAuthorizeUrl = $"{discoveryResponse.AuthorizeEndpoint}{query}";
             _log.Info(
@@ -115,32 +109,6 @@ namespace Lykke.Service.IroncladDecorator.Controllers
             query = Regex.Replace(query, responseType, "code", RegexOptions.IgnoreCase);
 
             return query;
-        }
-
-        private async Task<string> AdaptQueryStringAsync(string query)
-        {
-            await SaveAuthorizeQueryString(query);
-            var clientRedirectUri = Request.Query[OidcConstants.AuthorizeRequest.RedirectUri];
-
-            var clientRedirectUriEncoded = HttpUtility.UrlEncode(clientRedirectUri);
-            var signinCallback = Url.AbsoluteAction("SigninCallback", "Callback");
-            var signinCallbackEncoded = HttpUtility.UrlEncode(signinCallback);
-            query = Regex.Replace(query, clientRedirectUriEncoded,
-                signinCallbackEncoded ?? throw new InvalidOperationException(), RegexOptions.IgnoreCase);
-
-            var responseType = Request.Query[OidcConstants.AuthorizeRequest.ResponseType];
-            query = Regex.Replace(query, responseType, "code", RegexOptions.IgnoreCase);
-
-            return query;
-        }
-
-        private async Task SaveAuthorizeQueryString(string query)
-        {
-            var userSession = new UserSession
-            {
-                AuthorizeQuery = query
-            };
-            await _userSessionManager.SetUserSession(userSession);
         }
     }
 }

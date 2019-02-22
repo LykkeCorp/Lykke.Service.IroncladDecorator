@@ -1,4 +1,5 @@
 ﻿using System;
+using Lykke.Service.IroncladDecorator.OpenIdConnect;
 using Lykke.Service.Session.Client;
 using MessagePack;
 
@@ -11,7 +12,7 @@ namespace Lykke.Service.IroncladDecorator.Sessions
         public string OldLykkeToken { get; set; }
         public string LykkeUserId { get; set; }
         public Guid AuthId { get; set; }
-        public string AuthorizeQuery { get; set; }
+        public AuthorizationRequestContext AuthorizationRequestContext { get; set; }
 
         public UserSession()
         {

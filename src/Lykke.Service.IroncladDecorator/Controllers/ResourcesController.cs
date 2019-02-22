@@ -1,11 +1,10 @@
 ﻿using System;
 using System.Linq;
-using System.Net.Http;
 using System.Threading.Tasks;
 using IdentityModel;
-using IdentityModel.Client;
 using Lykke.Service.ClientAccount.Client;
 using Lykke.Service.IroncladDecorator.Extensions;
+using Lykke.Service.IroncladDecorator.OpenIdConnect;
 using Lykke.Service.IroncladDecorator.Sessions;
 using Lykke.Service.IroncladDecorator.Settings;
 using Lykke.Service.Session.Client;
@@ -18,9 +17,7 @@ namespace Lykke.Service.IroncladDecorator.Controllers
     {
         private readonly IClientAccountClient _clientAccountClient;
         private readonly IClientSessionsClient _clientSessionsClient;
-        private readonly IDiscoveryCache _discoveryCache;
-        private readonly IHttpClientFactory _httpClientFactory;
-        private readonly IroncladSettings _ironcladSettings;
+        private readonly IIroncladFacade _ironcladFacade;
         private readonly LifetimeSettings _lifetimeSettings;
         private readonly ILykkeSessionManager _lykkeSessionManager;
         private readonly IUserSessionManager _userSessionManager;
@@ -30,21 +27,17 @@ namespace Lykke.Service.IroncladDecorator.Controllers
             IUserSessionManager userSessionManager,
             IUserSessionRepository userSessionRepository,
             IClientAccountClient clientAccountClient,
-            IHttpClientFactory httpClientFactory,
-            IDiscoveryCache discoveryCache,
+            IIroncladFacade ironcladFacade,
             IClientSessionsClient clientSessionsClient,
-            IroncladSettings ironcladSettings,
             LifetimeSettings lifetimeSettings,
             ILykkeSessionManager lykkeSessionManager)
         {
-            _ironcladSettings = ironcladSettings;
             _lifetimeSettings = lifetimeSettings;
             _lykkeSessionManager = lykkeSessionManager;
             _userSessionRepository = userSessionRepository;
             _clientAccountClient = clientAccountClient;
             _userSessionManager = userSessionManager;
-            _httpClientFactory = httpClientFactory;
-            _discoveryCache = discoveryCache;
+            _ironcladFacade = ironcladFacade;
             _clientSessionsClient = clientSessionsClient;
         }
 
@@ -56,9 +49,7 @@ namespace Lykke.Service.IroncladDecorator.Controllers
             if (bearerToken == null)
                 return Unauthorized();
 
-            var httpClient = _httpClientFactory.CreateClient();
-
-            var introspectionResponse = await IntrospectToken(httpClient, bearerToken);
+            var introspectionResponse = await _ironcladFacade.IntrospectTokenAsync(bearerToken);
 
             if (!introspectionResponse.IsActive)
                 return Unauthorized();
@@ -111,7 +102,7 @@ namespace Lykke.Service.IroncladDecorator.Controllers
             }
 
             if (IsExpired(tokens.ExpiresAt)) 
-                tokens = await RefreshIroncladTokens(tokens.RefreshToken);
+                tokens = await _ironcladFacade.RefreshIroncladTokensAsync(tokens.RefreshToken);
 
             lykkeSession.IroncladTokens = tokens;
 
@@ -121,27 +112,7 @@ namespace Lykke.Service.IroncladDecorator.Controllers
 
             return new JsonResult(new {token = tokens.AccessToken});
         }
-
-        private async Task<IntrospectionResponse> IntrospectToken(HttpClient httpClient, string bearer)
-        {
-            var discoveryResponse = await _discoveryCache.GetAsync();
-
-            if (discoveryResponse.IsError)
-            {
-                _discoveryCache.Refresh();
-                throw new Exception(discoveryResponse.Error);
-            }
-
-            var introspectionResponse = await httpClient.IntrospectTokenAsync(new TokenIntrospectionRequest
-            {
-                Address = discoveryResponse.IntrospectionEndpoint,
-                ClientId = _ironcladSettings.IntrospectionClient.ClientId,
-                ClientSecret =_ironcladSettings.IntrospectionClient.ClientSecret,
-                Token = bearer
-            });
-            return introspectionResponse;
-        }
-
+        
         private async Task<IActionResult> GetTokenBasedOnCookie(string sessionId)
         {
             if (sessionId == null) return Unauthorized();
@@ -169,32 +140,6 @@ namespace Lykke.Service.IroncladDecorator.Controllers
         private bool IsExpired(DateTimeOffset expiresAt)
         {
             return expiresAt.Subtract(_lifetimeSettings.IroncladAccessTokenTimeBeforeRefresh) <= DateTimeOffset.UtcNow;
-        }
-
-        private async Task<TokenData> RefreshIroncladTokens(string ironcladRefreshToken)
-        {
-            var discoveryResponse = await _discoveryCache.GetAsync();
-
-            if (discoveryResponse.IsError)
-            {
-                _discoveryCache.Refresh();
-                throw new Exception(discoveryResponse.Error);
-            }
-            
-            var httpClient = _httpClientFactory.CreateClient();
-            
-            var tokenResponse = await httpClient.RequestRefreshTokenAsync(new RefreshTokenRequest
-            {
-                Address = discoveryResponse.TokenEndpoint,
-                RefreshToken = ironcladRefreshToken,
-                ClientId = _ironcladSettings.AuthClient.ClientId,
-                ClientSecret = _ironcladSettings.AuthClient.ClientSecret
-            });
-
-            if (tokenResponse.IsError)
-                throw new Exception(discoveryResponse.Error);
-
-            return new TokenData(tokenResponse);
         }
     }
 }

@@ -3,7 +3,7 @@ using System.Security.Claims;
 
 namespace Lykke.Service.IroncladDecorator.OpenIdConnect
 {
-    public class IdTokenValidationResult
+    public class TokenResponseValidationResult
     {
         public ClaimsPrincipal ValidatedClaimsPrincipal { get; set; }
         public JwtSecurityToken ValidatedIdToken { get; set; }
