@@ -21,6 +21,10 @@ IroncladDecoratorService:
     settings-key: IroncladDecoratorService-LifetimeSettings
     types:
       - Json
+  ValidationSettings:
+    settings-key: IroncladDecoratorService-ValidationSettings
+    types:
+      - Json
   IroncladSettings:
     IroncladIdp:
       settings-key: IroncladDecoratorService-IroncladSettings-IroncladIdp
