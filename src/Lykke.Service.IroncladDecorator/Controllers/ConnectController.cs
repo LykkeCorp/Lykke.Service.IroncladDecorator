@@ -8,6 +8,7 @@ using Lykke.Service.IroncladDecorator.Clients;
 using Lykke.Service.IroncladDecorator.Extensions;
 using Lykke.Service.IroncladDecorator.OpenIdConnect;
 using Lykke.Service.IroncladDecorator.Sessions;
+using Lykke.Service.IroncladDecorator.Settings;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.IdentityModel.Protocols.OpenIdConnect;
 
@@ -21,15 +22,18 @@ namespace Lykke.Service.IroncladDecorator.Controllers
         private readonly IUserSessionManager _userSessionManager;
         private readonly IIroncladFacade _ironcladFacade;
         private readonly IApplicationRepository _applicationRepository;
+        private readonly IroncladSettings _ironcladSettings;
 
         public ConnectController(
             ILogFactory logFactory,
             IUserSessionManager userSessionManager,
             IIroncladFacade ironcladFacade,
-            IApplicationRepository applicationRepository
-        )
+            IApplicationRepository applicationRepository, 
+            IroncladSettings ironcladSettings
+            )
         {
             _applicationRepository = applicationRepository;
+            _ironcladSettings = ironcladSettings;
             _log = logFactory.CreateLog(this);
             _userSessionManager = userSessionManager;
             _ironcladFacade = ironcladFacade;
@@ -43,17 +47,30 @@ namespace Lykke.Service.IroncladDecorator.Controllers
             if (!string.IsNullOrEmpty(error))
                 return BadRequest(error);
 
-            var userSession = new UserSession();
+            var requestMessage = HttpContext.GetOpenIdConnectMessage();
+
+            var userSession = new UserSession(requestMessage);
+            await _userSessionManager.SetUserSession(userSession);
+
+            var query = CreateAuthenticationRequestUrl(requestMessage, Url.AbsoluteAction("SigninCallback", "Callback"));
+
+            return await RedirectToExternalProvider(query);
+        }
+
+        [HttpGet]
+        [Route("authorize-old")]
+        public async Task<ActionResult> AuthorizeOld()
+        {
+            var error = await ValidateQuery();
+            if (!string.IsNullOrEmpty(error))
+                return BadRequest(error);
 
             var requestMessage = HttpContext.GetOpenIdConnectMessage();
 
-            var authorizationRequestContext = new AuthorizationRequestContext(requestMessage);
-            
-            var query = CreateAuthenticationRequestUrl(requestMessage);
-
-            userSession.AuthorizationRequestContext = authorizationRequestContext;
-
+            var userSession = new UserSession(requestMessage);
             await _userSessionManager.SetUserSession(userSession);
+
+            var query = CreateAuthenticationRequestUrl(requestMessage, Url.AbsoluteAction("SigninCallbackOld", "Callback"));
 
             return await RedirectToExternalProvider(query);
         }
@@ -99,14 +116,18 @@ namespace Lykke.Service.IroncladDecorator.Controllers
             return Redirect(externalAuthorizeUrl);
         }
 
-        private string CreateAuthenticationRequestUrl(OpenIdConnectMessage requestMessage)
+        private string CreateAuthenticationRequestUrl(OpenIdConnectMessage requestMessage, string redirectUri)
         {
             var newMessage = requestMessage.Clone();
 
-            newMessage.RedirectUri = Url.AbsoluteAction("SigninCallback", "Callback");
 
             newMessage.ResponseType = OidcConstants.ResponseTypes.Code;
 
+            newMessage.ClientId = _ironcladSettings.AuthClient.ClientId;
+            newMessage.ClientSecret = _ironcladSettings.AuthClient.ClientSecret;
+            newMessage.RedirectUri = redirectUri;
+
+            newMessage.Scope = $"{OpenIdConnectScope.Email} {OpenIdConnectScope.OpenId}";
             return newMessage.CreateAuthenticationRequestUrl();
         }
     }

@@ -48,6 +48,7 @@ namespace Lykke.Service.IroncladDecorator.OpenIdConnect
 
             context.ValidatedIdToken = validatedIdToken;
 
+            _connectProtocolValidator.RequireNonce = false;
             _connectProtocolValidator.ValidateTokenResponse(context);
         }
     }
