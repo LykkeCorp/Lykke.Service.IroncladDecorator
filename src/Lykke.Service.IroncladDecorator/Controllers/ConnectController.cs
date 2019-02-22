@@ -1,8 +1,6 @@
 ﻿using System;
 using System.Linq;
-using System.Text.RegularExpressions;
 using System.Threading.Tasks;
-using System.Web;
 using Common.Log;
 using IdentityModel;
 using Lykke.Common.Log;
@@ -11,6 +9,7 @@ using Lykke.Service.IroncladDecorator.Extensions;
 using Lykke.Service.IroncladDecorator.OpenIdConnect;
 using Lykke.Service.IroncladDecorator.Sessions;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.IdentityModel.Protocols.OpenIdConnect;
 
 namespace Lykke.Service.IroncladDecorator.Controllers
 {
@@ -48,11 +47,11 @@ namespace Lykke.Service.IroncladDecorator.Controllers
 
             var requestMessage = HttpContext.GetOpenIdConnectMessage();
 
-            var authorizationRequest = new AuthorizationRequestContext(requestMessage);
+            var authorizationRequestContext = new AuthorizationRequestContext(requestMessage);
+            
+            var query = CreateAuthenticationRequestUrl(requestMessage);
 
-            userSession.AuthorizationRequestContext = authorizationRequest;
-
-            var query = AdaptQueryString(Request.QueryString.Value);
+            userSession.AuthorizationRequestContext = authorizationRequestContext;
 
             await _userSessionManager.SetUserSession(userSession);
 
@@ -88,27 +87,27 @@ namespace Lykke.Service.IroncladDecorator.Controllers
         {
             var discoveryResponse = await _ironcladFacade.GetDiscoveryResponseAsync();
 
-            var externalAuthorizeUrl = $"{discoveryResponse.AuthorizeEndpoint}{query}";
+            var uriBuilder = new UriBuilder(discoveryResponse.AuthorizeEndpoint)
+            {
+                Query = query
+            };
+
+            var externalAuthorizeUrl = uriBuilder.ToString();
             _log.Info(
                 $"Redirect URI substitued, trying to proxy to external provider on {externalAuthorizeUrl}");
 
             return Redirect(externalAuthorizeUrl);
         }
 
-        private string AdaptQueryString(string query)
+        private string CreateAuthenticationRequestUrl(OpenIdConnectMessage requestMessage)
         {
-            var clientRedirectUri = Request.Query[OidcConstants.AuthorizeRequest.RedirectUri];
+            var newMessage = requestMessage.Clone();
 
-            var clientRedirectUriEncoded = HttpUtility.UrlEncode(clientRedirectUri);
-            var signinCallback = Url.AbsoluteAction("SigninCallback", "Callback");
-            var signinCallbackEncoded = HttpUtility.UrlEncode(signinCallback);
-            query = Regex.Replace(query, clientRedirectUriEncoded,
-                signinCallbackEncoded ?? throw new InvalidOperationException(), RegexOptions.IgnoreCase);
+            newMessage.RedirectUri = Url.AbsoluteAction("SigninCallback", "Callback");
 
-            var responseType = Request.Query[OidcConstants.AuthorizeRequest.ResponseType];
-            query = Regex.Replace(query, responseType, "code", RegexOptions.IgnoreCase);
+            newMessage.ResponseType = OidcConstants.ResponseTypes.Code;
 
-            return query;
+            return newMessage.CreateAuthenticationRequestUrl();
         }
     }
 }
