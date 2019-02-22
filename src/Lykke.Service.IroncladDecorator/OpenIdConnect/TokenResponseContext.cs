@@ -24,7 +24,7 @@ namespace Lykke.Service.IroncladDecorator.OpenIdConnect
             _openIdConnectMessage = new OpenIdConnectMessage(tokenResponse.Json);
         }
 
-        public TokenResponseValidationResult Validate(
+        public void Validate(
             AuthorizationRequestContext authorizationRequestContext,
             TokenValidationParameters parameters)
         {
@@ -39,7 +39,7 @@ namespace Lykke.Service.IroncladDecorator.OpenIdConnect
                 throw new Exception("Unable to read id token");
             }
 
-            var user = _jwtSecurityTokenHandler.ValidateToken(idToken, parameters, out var securityToken);
+            _jwtSecurityTokenHandler.ValidateToken(idToken, parameters, out var securityToken);
 
             if (!(securityToken is JwtSecurityToken validatedIdToken))
             {
@@ -49,12 +49,6 @@ namespace Lykke.Service.IroncladDecorator.OpenIdConnect
             context.ValidatedIdToken = validatedIdToken;
 
             _connectProtocolValidator.ValidateTokenResponse(context);
-
-            return new TokenResponseValidationResult
-            {
-                ValidatedClaimsPrincipal = user,
-                ValidatedIdToken = validatedIdToken
-            };
         }
     }
 }
