@@ -15,7 +15,7 @@ namespace Lykke.Service.IroncladDecorator.OpenIdConnect
 
         public IroncladFacade(
             IroncladSettings ironcladSettings,
-            IDiscoveryCache discoveryCache, 
+            IDiscoveryCache discoveryCache,
             IHttpClientFactory httpClientFactory)
         {
             _ironcladSettings = ironcladSettings;
@@ -46,7 +46,7 @@ namespace Lykke.Service.IroncladDecorator.OpenIdConnect
             {
                 Address = discoveryResponse.TokenEndpoint,
                 Code = code,
-                ClientId =  _ironcladSettings.AuthClient.ClientId,
+                ClientId = _ironcladSettings.AuthClient.ClientId,
                 ClientSecret = _ironcladSettings.AuthClient.ClientSecret,
                 RedirectUri = redirectUri
             });
@@ -62,7 +62,7 @@ namespace Lykke.Service.IroncladDecorator.OpenIdConnect
             var discoveryResponse = await GetDiscoveryResponseAsync();
 
             var httpClient = _httpClientFactory.CreateClient();
-            
+
             var tokenResponse = await httpClient.RequestRefreshTokenAsync(new RefreshTokenRequest
             {
                 Address = discoveryResponse.TokenEndpoint,
@@ -87,7 +87,7 @@ namespace Lykke.Service.IroncladDecorator.OpenIdConnect
             {
                 Address = discoveryResponse.IntrospectionEndpoint,
                 ClientId = _ironcladSettings.IntrospectionClient.ClientId,
-                ClientSecret =_ironcladSettings.IntrospectionClient.ClientSecret,
+                ClientSecret = _ironcladSettings.IntrospectionClient.ClientSecret,
                 Token = bearer
             });
 

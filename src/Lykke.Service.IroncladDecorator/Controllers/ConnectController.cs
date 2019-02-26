@@ -23,15 +23,18 @@ namespace Lykke.Service.IroncladDecorator.Controllers
         private readonly IIroncladFacade _ironcladFacade;
         private readonly IApplicationRepository _applicationRepository;
         private readonly IroncladSettings _ironcladSettings;
+        private readonly ILykkeSessionManager _lykkeSessionManager;
 
         public ConnectController(
             ILogFactory logFactory,
             IUserSessionManager userSessionManager,
             IIroncladFacade ironcladFacade,
             IApplicationRepository applicationRepository, 
-            IroncladSettings ironcladSettings
+            IroncladSettings ironcladSettings,
+            ILykkeSessionManager lykkeSessionManager
             )
         {
+            _lykkeSessionManager = lykkeSessionManager;
             _applicationRepository = applicationRepository;
             _ironcladSettings = ironcladSettings;
             _log = logFactory.CreateLog(this);
@@ -73,6 +76,24 @@ namespace Lykke.Service.IroncladDecorator.Controllers
             var query = CreateAuthenticationRequestUrl(requestMessage, Url.AbsoluteAction("SigninCallbackOld", "Callback"));
 
             return await RedirectToExternalProvider(query);
+        }
+
+        [HttpGet]
+        [Route("logout")]
+        public async Task<ActionResult> Logout()
+        {
+            var userSession = await _userSessionManager.GetUserSession();
+            userSession.PostLogoutRedirectUrl = Request.Query[OidcConstants.EndSessionRequest.PostLogoutRedirectUri];
+            await _userSessionManager.SetUserSession(userSession);
+
+            var lykkeSession = await _lykkeSessionManager.GetActiveAsync(userSession.OldLykkeToken);
+
+            var discovery = await _ironcladFacade.GetDiscoveryResponseAsync();
+            var redirectUrl = discovery.EndSessionEndpoint 
+                + $"?{OidcConstants.EndSessionRequest.PostLogoutRedirectUri}={Url.AbsoluteAction("Logout", "Callback")}"
+                + $"&{OidcConstants.EndSessionRequest.IdTokenHint}={lykkeSession.IroncladTokens.IdentityToken.Source}";
+
+            return Redirect(redirectUrl);
         }
 
         private async Task<string> ValidateQuery()

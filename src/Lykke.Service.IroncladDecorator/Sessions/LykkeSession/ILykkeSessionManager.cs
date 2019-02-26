@@ -9,5 +9,7 @@ namespace Lykke.Service.IroncladDecorator.Sessions
         Task SetAsync(LykkeSession session);
 
         Task CreateAsync(string oldLykkeToken, TokenData tokens);
+
+        Task DeleteAsync(string oldLykkeToken);
     }
 }

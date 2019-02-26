@@ -125,6 +125,19 @@ namespace Lykke.Service.IroncladDecorator.Controllers
             return Ok();
         }
 
+        [HttpGet]
+        [Route("logout")]
+        public async Task<ActionResult> Logout()
+        {
+            var userSession = await _userSessionManager.GetUserSession();
+            
+            _userSessionManager.DeleteSessionCookie();
+
+            await _lykkeSessionManager.DeleteAsync(userSession.OldLykkeToken);
+
+            return Redirect(userSession.PostLogoutRedirectUrl);
+        }
+
         private async Task ProcessMobileCallback()
         {
             if (!HttpContext.Items.TryGetValue(Constants.Callback.TokenEndpointResponse, out var tokensValue))
