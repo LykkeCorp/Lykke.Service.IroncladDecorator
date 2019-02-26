@@ -14,6 +14,7 @@ namespace Lykke.Service.IroncladDecorator.Sessions
         public string LykkeUserId { get; set; }
         public Guid AuthId { get; set; }
         public AuthorizationRequestContext AuthorizationRequestContext { get; set; }
+        public string PostLogoutRedirectUrl { get; set; }
 
         public UserSession()
         {
