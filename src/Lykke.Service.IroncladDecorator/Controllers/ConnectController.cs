@@ -1,6 +1,8 @@
 ﻿using System;
 using System.Linq;
+using System.Text.Encodings.Web;
 using System.Threading.Tasks;
+using System.Web;
 using Common.Log;
 using IdentityModel;
 using Lykke.Common.Log;
@@ -89,9 +91,10 @@ namespace Lykke.Service.IroncladDecorator.Controllers
             var lykkeSession = await _lykkeSessionManager.GetActiveAsync(userSession.OldLykkeToken);
 
             var discovery = await _ironcladFacade.GetDiscoveryResponseAsync();
+
             var redirectUrl = discovery.EndSessionEndpoint 
-                + $"?{OidcConstants.EndSessionRequest.PostLogoutRedirectUri}={Url.AbsoluteAction("Logout", "Callback")}"
-                + $"&{OidcConstants.EndSessionRequest.IdTokenHint}={lykkeSession.IroncladTokens.IdentityToken.Source}";
+                + $"?{OidcConstants.EndSessionRequest.IdTokenHint}={lykkeSession.IroncladTokens.IdentityToken.Source}"
+                + $"&{OidcConstants.EndSessionRequest.PostLogoutRedirectUri}={HttpUtility.UrlEncode(Url.AbsoluteAction("Logout", "Callback"))}";
 
             return Redirect(redirectUrl);
         }
