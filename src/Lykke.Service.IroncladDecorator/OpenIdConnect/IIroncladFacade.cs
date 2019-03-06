@@ -13,5 +13,7 @@ namespace Lykke.Service.IroncladDecorator.OpenIdConnect
         Task<TokenData> RefreshIroncladTokensAsync(string ironcladRefreshToken);
 
         Task<IntrospectionResponse> IntrospectTokenAsync(string bearer);
+
+        Task<TokenRevocationResponse> RevokeTokenAsync(string tokenTypeHint, string token);
     }
 }
