@@ -93,5 +93,23 @@ namespace Lykke.Service.IroncladDecorator.OpenIdConnect
 
             return introspectionResponse;
         }
+
+        public async Task<TokenRevocationResponse> RevokeTokenAsync(string tokenTypeHint, string token)
+        {
+            var httpClient = _httpClientFactory.CreateClient();
+
+            var discoveryResponse = await GetDiscoveryResponseAsync();
+
+            var tokenRevocationResponse = await httpClient.RevokeTokenAsync(new TokenRevocationRequest
+            {
+                Address = discoveryResponse.RevocationEndpoint,
+                ClientId = _ironcladSettings.AuthClient.ClientId,
+                ClientSecret = _ironcladSettings.AuthClient.ClientSecret,
+                Token = token,
+                TokenTypeHint = tokenTypeHint
+            });
+
+            return tokenRevocationResponse;
+        }
     }
 }

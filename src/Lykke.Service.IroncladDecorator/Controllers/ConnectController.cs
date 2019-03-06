@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Linq;
-using System.Text.Encodings.Web;
 using System.Threading.Tasks;
 using System.Web;
 using Common.Log;
@@ -8,6 +7,7 @@ using IdentityModel;
 using Lykke.Common.Log;
 using Lykke.Service.IroncladDecorator.Clients;
 using Lykke.Service.IroncladDecorator.Extensions;
+using Lykke.Service.IroncladDecorator.Models;
 using Lykke.Service.IroncladDecorator.OpenIdConnect;
 using Lykke.Service.IroncladDecorator.Sessions;
 using Lykke.Service.IroncladDecorator.Settings;
@@ -153,6 +153,15 @@ namespace Lykke.Service.IroncladDecorator.Controllers
 
             newMessage.Scope = $"{OpenIdConnectScope.Email} {OpenIdConnectScope.OpenId}";
             return newMessage.CreateAuthenticationRequestUrl();
+        }
+
+        [HttpPost]
+        [Route("revocation")]
+        public async Task<ActionResult> Revocation([FromForm] RevocationRequest request)
+        {
+            var response = await _ironcladFacade.RevokeTokenAsync(request.token_type_hint, request.token);
+
+            return new JsonResult(response);
         }
     }
 }
