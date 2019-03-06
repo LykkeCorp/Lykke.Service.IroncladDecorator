@@ -22,6 +22,8 @@ namespace Lykke.Service.IroncladDecorator.Controllers
             var json = discoveryResponse.Json.DeepClone();
 
             json["authorization_endpoint"] = Url.AbsoluteAction("Authorize", "Connect");
+            json["end_session_endpoint"] = Url.AbsoluteAction("Logout", "Connect");
+            json["revocation_endpoint"] = Url.AbsoluteAction("Revocation", "Connect");
 
             return new JsonResult(json);
         }
