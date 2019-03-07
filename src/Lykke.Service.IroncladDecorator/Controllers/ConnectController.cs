@@ -14,6 +14,7 @@ using Lykke.Service.IroncladDecorator.Sessions;
 using Lykke.Service.IroncladDecorator.Settings;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.IdentityModel.Protocols.OpenIdConnect;
+using Newtonsoft.Json;
 
 namespace Lykke.Service.IroncladDecorator.Controllers
 {
@@ -161,6 +162,18 @@ namespace Lykke.Service.IroncladDecorator.Controllers
         public async Task<ActionResult> Revocation([FromForm] RevocationRequest request)
         {
             var response = await _ironcladFacade.RevokeTokenAsync(request.token_type_hint, request.token);
+
+            return new JsonResult(response);
+        }
+
+
+        [HttpPost]
+        [Route("userinfo")]
+        public async Task<ActionResult> UserInfo()
+        {
+            var bearer = HttpContext.GetBearerTokenFromAuthorizationHeader();
+
+            var response = await _ironcladFacade.GetUserInfoAsync(bearer);
 
             return new JsonResult(response);
         }

@@ -17,6 +17,8 @@ namespace Lykke.Service.IroncladDecorator.OpenIdConnect
 
         Task<TokenRevocationResponse> RevokeTokenAsync(string tokenTypeHint, string token);
 
-        Task<HttpResponseMessage> GetJwks();
+        Task<HttpResponseMessage> GetJwksAsync();
+
+        Task<UserInfoResponse> GetUserInfoAsync(string bearer);
     }
 }

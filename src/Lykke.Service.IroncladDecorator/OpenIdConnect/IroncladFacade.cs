@@ -112,13 +112,28 @@ namespace Lykke.Service.IroncladDecorator.OpenIdConnect
             return tokenRevocationResponse;
         }
 
-        public async Task<HttpResponseMessage> GetJwks()
+        public async Task<HttpResponseMessage> GetJwksAsync()
         {
             var httpClient = _httpClientFactory.CreateClient();
 
             var discoveryResponse = await GetDiscoveryResponseAsync();
 
             var response = await httpClient.GetAsync(discoveryResponse.JwksUri);
+
+            return response;
+        }
+
+        public async Task<UserInfoResponse> GetUserInfoAsync(string bearer)
+        {
+            var httpClient = _httpClientFactory.CreateClient();
+
+            var discoveryResponse = await GetDiscoveryResponseAsync();
+
+            var response = await httpClient.GetUserInfoAsync(new UserInfoRequest()
+            {
+                Address = discoveryResponse.UserInfoEndpoint,
+                Token = bearer
+            });
 
             return response;
         }

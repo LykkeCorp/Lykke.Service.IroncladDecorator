@@ -29,6 +29,7 @@ namespace Lykke.Service.IroncladDecorator.Controllers
             json["end_session_endpoint"] = Url.AbsoluteAction("Logout", "Connect");
             json["revocation_endpoint"] = Url.AbsoluteAction("Revocation", "Connect");
             json["jwks_uri"] = Url.AbsoluteAction("Jwks", "Discovery");
+            json["userinfo_endpoint"] = Url.AbsoluteAction("UserInfo", "Connect");
 
             return new JsonResult(json);
         }
@@ -36,7 +37,7 @@ namespace Lykke.Service.IroncladDecorator.Controllers
         [HttpGet("~/.well-known/openid-configuration/jwks")]
         public async Task<ActionResult> Jwks()
         {
-            var response = await _ironcladFacade.GetJwks();
+            var response = await _ironcladFacade.GetJwksAsync();
 
             var result = response.Content.ReadAsStringAsync().Result;
 
