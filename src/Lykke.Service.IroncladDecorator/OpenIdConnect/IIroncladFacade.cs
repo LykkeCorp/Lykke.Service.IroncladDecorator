@@ -1,4 +1,5 @@
-﻿using System.Threading.Tasks;
+﻿using System.Net.Http;
+using System.Threading.Tasks;
 using IdentityModel.Client;
 using Lykke.Service.IroncladDecorator.Sessions;
 
@@ -15,5 +16,7 @@ namespace Lykke.Service.IroncladDecorator.OpenIdConnect
         Task<IntrospectionResponse> IntrospectTokenAsync(string bearer);
 
         Task<TokenRevocationResponse> RevokeTokenAsync(string tokenTypeHint, string token);
+
+        Task<HttpResponseMessage> GetJwks();
     }
 }
