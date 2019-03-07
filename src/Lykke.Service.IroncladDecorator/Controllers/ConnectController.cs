@@ -175,7 +175,7 @@ namespace Lykke.Service.IroncladDecorator.Controllers
 
             var response = await _ironcladFacade.GetUserInfoAsync(bearer);
 
-            return new JsonResult(response);
+            return new JsonResult(response.Json);
         }
     }
 }
