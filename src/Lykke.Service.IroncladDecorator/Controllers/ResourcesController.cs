@@ -112,7 +112,7 @@ namespace Lykke.Service.IroncladDecorator.Controllers
 
             return new JsonResult(new {token = tokens.AccessToken});
         }
-        
+
         private async Task<IActionResult> GetTokenBasedOnCookie(string sessionId)
         {
             if (sessionId == null) return Unauthorized();
