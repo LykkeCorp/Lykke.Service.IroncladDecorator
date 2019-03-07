@@ -167,7 +167,7 @@ namespace Lykke.Service.IroncladDecorator.Controllers
         }
 
 
-        [HttpPost]
+        [HttpGet]
         [Route("userinfo")]
         public async Task<ActionResult> UserInfo()
         {

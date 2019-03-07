@@ -39,7 +39,7 @@ namespace Lykke.Service.IroncladDecorator.Controllers
         {
             var response = await _ironcladFacade.GetJwksAsync();
 
-            var result = response.Content.ReadAsStringAsync().Result;
+            var result = await response.Content.ReadAsStringAsync();
 
             var parsed = JsonConvert.DeserializeObject(result);
 
