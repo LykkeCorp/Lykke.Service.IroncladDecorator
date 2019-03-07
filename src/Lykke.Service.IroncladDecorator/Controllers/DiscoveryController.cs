@@ -1,8 +1,10 @@
-﻿using System.Net.Http;
+﻿using System.Net;
+using System.Net.Http;
 using System.Threading.Tasks;
 using Lykke.Service.IroncladDecorator.Extensions;
 using Lykke.Service.IroncladDecorator.OpenIdConnect;
 using Microsoft.AspNetCore.Mvc;
+using Newtonsoft.Json;
 
 namespace Lykke.Service.IroncladDecorator.Controllers
 {
@@ -36,7 +38,11 @@ namespace Lykke.Service.IroncladDecorator.Controllers
         {
             var response = await _ironcladFacade.GetJwks();
 
-            return Ok(response.Content.ReadAsStringAsync().Result);
+            var result = response.Content.ReadAsStringAsync().Result;
+
+            var parsed = JsonConvert.DeserializeObject(result);
+
+            return new JsonResult(parsed);
         }
     }
 }
