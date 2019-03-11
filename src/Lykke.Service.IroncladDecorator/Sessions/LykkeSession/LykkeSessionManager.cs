@@ -30,6 +30,11 @@ namespace Lykke.Service.IroncladDecorator.Sessions
             return lykkeSession;
         }
 
+        public async Task<LykkeSession> GetAnyAsync(string oldLykkeToken)
+        {
+            return await _lykkeSessionRepository.GetAsync(oldLykkeToken);
+        }
+
         public Task SetAsync(LykkeSession session)
         {
             return _lykkeSessionRepository.SetAsync(session);

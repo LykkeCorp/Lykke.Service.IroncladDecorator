@@ -133,7 +133,8 @@ namespace Lykke.Service.IroncladDecorator.Controllers
             
             _userSessionManager.DeleteSessionCookie();
 
-            await _lykkeSessionManager.DeleteAsync(userSession.OldLykkeToken);
+            if(userSession.OldLykkeToken != null)
+                await _lykkeSessionManager.DeleteAsync(userSession.OldLykkeToken);
 
             return Redirect(userSession.PostLogoutRedirectUrl);
         }

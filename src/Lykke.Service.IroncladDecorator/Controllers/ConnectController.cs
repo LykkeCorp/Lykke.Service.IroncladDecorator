@@ -5,6 +5,7 @@ using System.Threading.Tasks;
 using System.Web;
 using Common.Log;
 using IdentityModel;
+using IdentityModel.Client;
 using Lykke.Common.Log;
 using Lykke.Service.IroncladDecorator.Clients;
 using Lykke.Service.IroncladDecorator.Extensions;
@@ -86,19 +87,29 @@ namespace Lykke.Service.IroncladDecorator.Controllers
         [Route("logout")]
         public async Task<ActionResult> Logout()
         {
-            var userSession = await _userSessionManager.GetUserSession();
+            var userSession = await _userSessionManager.GetUserSession() ?? new UserSession();
             userSession.PostLogoutRedirectUrl = Request.Query[OidcConstants.EndSessionRequest.PostLogoutRedirectUri];
             await _userSessionManager.SetUserSession(userSession);
 
-            var lykkeSession = await _lykkeSessionManager.GetActiveAsync(userSession.OldLykkeToken);
+            var lykkeSession = await _lykkeSessionManager.GetAnyAsync(userSession.OldLykkeToken);
 
             var discovery = await _ironcladFacade.GetDiscoveryResponseAsync();
 
-            var redirectUrl = discovery.EndSessionEndpoint 
-                + $"?{OidcConstants.EndSessionRequest.IdTokenHint}={lykkeSession.IroncladTokens.IdentityToken.Source}"
-                + $"&{OidcConstants.EndSessionRequest.PostLogoutRedirectUri}={HttpUtility.UrlEncode(Url.AbsoluteAction("Logout", "Callback"))}";
+            var redirectUrl = MakeRedirectUrl(discovery, lykkeSession);
 
             return Redirect(redirectUrl);
+        }
+
+        private string MakeRedirectUrl(DiscoveryResponse discovery, LykkeSession lykkeSession)
+        {
+            if (lykkeSession?.IroncladTokens?.IdentityToken?.Source != null)
+
+                return discovery.EndSessionEndpoint
+                       + $"?{OidcConstants.EndSessionRequest.IdTokenHint}={lykkeSession.IroncladTokens.IdentityToken.Source}"
+                       + $"&{OidcConstants.EndSessionRequest.PostLogoutRedirectUri}={HttpUtility.UrlEncode(Url.AbsoluteAction("Logout", "Callback"))}";
+
+            return discovery.EndSessionEndpoint
+                   + $"?{OidcConstants.EndSessionRequest.PostLogoutRedirectUri}={HttpUtility.UrlEncode(Url.AbsoluteAction("Logout", "Callback"))}";
         }
 
         private async Task<string> ValidateQuery()
