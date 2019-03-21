@@ -63,7 +63,7 @@ namespace Lykke.Service.IroncladDecorator.Controllers
             return new JsonResult(new
             {
                 token = authResult.SessionToken,
-                authResult.AuthId,
+                authId = authResult.AuthId,
                 notificationsId = clientAccount.NotificationsId
             });
         }
