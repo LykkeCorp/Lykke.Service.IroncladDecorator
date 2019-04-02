@@ -136,7 +136,11 @@ namespace Lykke.Service.IroncladDecorator.Controllers
             if(userSession.OldLykkeToken != null)
                 await _lykkeSessionManager.DeleteAsync(userSession.OldLykkeToken);
 
-            return Redirect(userSession.PostLogoutRedirectUrl);
+            if (userSession.PostLogoutRedirectUrl != null)
+            {
+                return Redirect(userSession.PostLogoutRedirectUrl);
+            }
+            return Ok();
         }
 
         private async Task ProcessMobileCallback()
