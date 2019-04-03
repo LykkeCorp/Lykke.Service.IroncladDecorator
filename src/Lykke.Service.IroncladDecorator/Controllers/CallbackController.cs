@@ -133,8 +133,34 @@ namespace Lykke.Service.IroncladDecorator.Controllers
             
             _userSessionManager.DeleteSessionCookie();
 
-            if(userSession.OldLykkeToken != null)
+            if (userSession.OldLykkeToken != null)
+            {
                 await _lykkeSessionManager.DeleteAsync(userSession.OldLykkeToken);
+            }
+
+            if (userSession.PostLogoutRedirectUrl != null)
+            {
+                return Redirect(userSession.PostLogoutRedirectUrl);
+            }
+            return Ok();
+        }
+
+        [HttpGet]
+        [Route("logout/frontchannel")]
+        public async Task<ActionResult> FrontChannelLogout()
+        {
+            var userSession = await _userSessionManager.GetUserSession();
+
+            if (userSession == null)
+            {
+                _log.Warning("Fronchannel logout requested, but user is not logged in.");
+                return Ok();
+            }
+
+            if (userSession.OldLykkeToken != null)
+            {
+                await _lykkeSessionManager.DeleteAsync(userSession.OldLykkeToken);
+            }
 
             if (userSession.PostLogoutRedirectUrl != null)
             {

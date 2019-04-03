@@ -40,9 +40,10 @@ namespace Lykke.Service.IroncladDecorator.Sessions
             return _lykkeSessionRepository.SetAsync(session);
         }
 
-        public Task DeleteAsync(string oldLykkeToken)
+        public async Task DeleteAsync(string oldLykkeToken)
         {
-            return _lykkeSessionRepository.DeleteAsync(oldLykkeToken);
+            await _clientSessionsClient.DeleteSessionIfExistsAsync(oldLykkeToken);
+            await _lykkeSessionRepository.DeleteAsync(oldLykkeToken);
         }
 
         public Task CreateAsync(string oldLykkeToken, TokenData tokens)
