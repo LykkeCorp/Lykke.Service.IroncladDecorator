@@ -56,14 +56,25 @@ namespace Lykke.Service.IroncladDecorator.Controllers
 
             var userId = introspectionResponse.Claims.FirstOrDefault(x => x.Type == JwtClaimTypes.Subject)?.Value;
 
-            var authResult = await _clientSessionsClient.Authenticate(userId, "hobbit");
+            var userSession = await _userSessionManager.GetUserSession() ?? new UserSession()
+            {
+                LykkeUserId = userId
+            };
 
+            if (userSession.OldLykkeToken == null)
+            {
+                var authResult = await _clientSessionsClient.Authenticate(userId, "hobbit");
+                userSession.OldLykkeToken = authResult.SessionToken;
+                userSession.AuthId = authResult.AuthId;
+                await _userSessionManager.SetUserSession(userSession);
+            }
+            
             var clientAccount = await _clientAccountClient.GetByIdAsync(userId);
 
             return new JsonResult(new
             {
-                token = authResult.SessionToken,
-                authId = authResult.AuthId,
+                token = userSession.OldLykkeToken,
+                authId = userSession.AuthId,
                 notificationsId = clientAccount.NotificationsId
             });
         }
