@@ -93,7 +93,7 @@ namespace Lykke.Service.IroncladDecorator.Controllers
         {
             var authResult = await _clientSessionsClient.Authenticate(identityToken.UserId, "hobbit");
 
-            userSession.SaveAuthResult(authResult, tokens);
+            userSession.SaveAuthResult(authResult);
 
             await _userSessionManager.SetUserSession(userSession);
 
@@ -131,18 +131,14 @@ namespace Lykke.Service.IroncladDecorator.Controllers
         {
             var userSession = await _userSessionManager.GetUserSession();
             
-            _userSessionManager.DeleteSessionCookie();
-
-            if (userSession.OldLykkeToken != null)
+            if (userSession?.OldLykkeToken != null)
             {
                 await _lykkeSessionManager.DeleteAsync(userSession.OldLykkeToken);
             }
 
-            if (userSession.PostLogoutRedirectUrl != null)
-            {
-                return Redirect(userSession.PostLogoutRedirectUrl);
-            }
-            return Ok();
+            _userSessionManager.DeleteSessionCookie();
+
+            return Redirect(userSession?.PostLogoutRedirectUrl ?? "/");
         }
 
         [HttpGet]
@@ -161,6 +157,9 @@ namespace Lykke.Service.IroncladDecorator.Controllers
             {
                 await _lykkeSessionManager.DeleteAsync(userSession.OldLykkeToken);
             }
+
+            userSession.ClearAuthResult();
+            await _userSessionManager.SetUserSession(userSession);
 
             if (userSession.PostLogoutRedirectUrl != null)
             {

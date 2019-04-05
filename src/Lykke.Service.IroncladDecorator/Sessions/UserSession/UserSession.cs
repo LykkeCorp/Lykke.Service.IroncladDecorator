@@ -9,11 +9,11 @@ namespace Lykke.Service.IroncladDecorator.Sessions
     [MessagePackObject(true)]
     public class UserSession
     {
-        public string Id { get; set; }
-        public string OldLykkeToken { get; set; }
-        public string LykkeUserId { get; set; }
-        public Guid AuthId { get; set; }
-        public AuthorizationRequestContext AuthorizationRequestContext { get; set; }
+        public string Id { get; }
+        public string OldLykkeToken { get; private set; }
+        public string LykkeUserId { get; private set; }
+        public Guid? AuthId { get; private set; }
+        public AuthorizationRequestContext AuthorizationRequestContext { get; }
         public string PostLogoutRedirectUrl { get; set; }
 
         public UserSession()
@@ -26,11 +26,17 @@ namespace Lykke.Service.IroncladDecorator.Sessions
             AuthorizationRequestContext = new AuthorizationRequestContext(requestMessage);
         }
 
-        public void SaveAuthResult(IClientSession clientSession, TokenData tokens)
+        public void SaveAuthResult(IClientSession clientSession)
         {
             OldLykkeToken = clientSession.SessionToken;
             AuthId = clientSession.AuthId;
             LykkeUserId  = clientSession.ClientId;
+        }
+
+        public void ClearAuthResult()
+        {
+            OldLykkeToken = null;
+            AuthId = null;
         }
     }
 }
