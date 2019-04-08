@@ -8,6 +8,7 @@ using Lykke.Service.IroncladDecorator.OpenIdConnect;
 using Lykke.Service.IroncladDecorator.Sessions;
 using Lykke.Service.IroncladDecorator.Settings;
 using Lykke.Service.Session.Client;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Lykke.Service.IroncladDecorator.Controllers
@@ -56,24 +57,30 @@ namespace Lykke.Service.IroncladDecorator.Controllers
 
             var userId = introspectionResponse.Claims.FirstOrDefault(x => x.Type == JwtClaimTypes.Subject)?.Value;
 
-            var userSession = await _userSessionManager.GetUserSession() ?? new UserSession()
+            UserSession session;
+            var idFromCorrelation = _userSessionManager.GetCorellationSessionId();
+            if (!string.IsNullOrEmpty(idFromCorrelation))
             {
-                LykkeUserId = userId
-            };
-
-            if (userSession.OldLykkeToken == null)
-            {
-                var authResult = await _clientSessionsClient.Authenticate(userId, "hobbit");
-                userSession.SaveAuthResult(authResult);
-                await _userSessionManager.SetUserSession(userSession);
+                session = await _userSessionManager.GetUserSession(idFromCorrelation);
             }
-            
+            else
+            {
+                session = new UserSession
+                {
+                    LykkeUserId = userId
+                };
+                var authResult = await _clientSessionsClient.Authenticate(userId, "hobbit");
+                session.SaveAuthResult(authResult);
+                await _userSessionManager.SetUserSession(session);
+                _userSessionManager.SetCorrelationCookie(session);
+            }
+
             var clientAccount = await _clientAccountClient.GetByIdAsync(userId);
 
             return new JsonResult(new
             {
-                token = userSession.OldLykkeToken,
-                authId = userSession.AuthId,
+                token = session.OldLykkeToken,
+                authId = session.AuthId,
                 notificationsId = clientAccount.NotificationsId
             });
         }

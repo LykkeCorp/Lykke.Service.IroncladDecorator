@@ -10,8 +10,12 @@ namespace Lykke.Service.IroncladDecorator.Sessions
 
         string GetIdFromCookie();
 
-        Task<UserSession> GetUserSession();
+        Task<UserSession> GetUserSession(string userSessionId = null);
 
         Task SetUserSession(UserSession userSession);
+
+        void SetCorrelationCookie(UserSession userSession);
+
+        string GetCorellationSessionId();
     }
 }
