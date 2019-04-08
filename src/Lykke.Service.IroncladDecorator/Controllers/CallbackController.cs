@@ -98,6 +98,8 @@ namespace Lykke.Service.IroncladDecorator.Controllers
             await _userSessionManager.SetUserSession(userSession);
 
             await _lykkeSessionManager.CreateAsync(authResult.SessionToken, tokens);
+
+            _userSessionManager.SetCorrelationCookie(userSession);
         }
 
         [HttpGet]

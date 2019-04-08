@@ -1,4 +1,5 @@
-﻿using System.Threading.Tasks;
+﻿using System;
+using System.Threading.Tasks;
 using Common.Log;
 using Lykke.Common.Log;
 using Lykke.Service.IroncladDecorator.Settings;
@@ -70,19 +71,19 @@ namespace Lykke.Service.IroncladDecorator.Sessions
                 : ProtectionUtils.DeserializeAndUnprotect<string>(value, _dataProtector);
         }
 
-        public async Task<UserSession> GetUserSession()
+        public async Task<UserSession> GetUserSession(string userSessionId = null)
         {
             _log.Info("Start getting session.");
 
-            var id = GetIdFromCookie();
+            var id = !string.IsNullOrWhiteSpace(userSessionId) ? userSessionId : GetIdFromCookie();
 
             if (string.IsNullOrWhiteSpace(id))
             {
-                _log.Warning("Session id not found in cookie!");
+                _log.Warning("Session id not found!");
                 return null;
             }
 
-            _log.Info("Session found in cookie. Id:{Id}", id);
+            _log.Info("Session found. Id:{Id}", id);
 
             var session = await _userSessionRepository.GetAsync(id);
 
@@ -98,6 +99,26 @@ namespace Lykke.Service.IroncladDecorator.Sessions
             CreateIdCookie(userSession);
 
             await _userSessionRepository.SetAsync(userSession);
+        }
+
+        public void SetCorrelationCookie(UserSession userSession)
+        {
+            var useHttps = !_hostingEnvironment.IsDevelopment();
+
+            HttpContext.Response.Cookies.Append("UserSessionCorrelation", userSession.Id, new CookieOptions
+            {
+                HttpOnly = false,
+                Secure = useHttps,
+                Expires = _clock.UtcNow.Add(_lifetimeSettings.UserSessionCookieLifetime),
+                MaxAge = _lifetimeSettings.UserSessionCookieLifetime,
+                SameSite = SameSiteMode.None
+            });
+        }
+
+        public string GetCorellationSessionId()
+        {
+            HttpContext.Request.Cookies.TryGetValue("UserSessionCorrelation", out string value);
+            return value;
         }
 
         private CookieOptions CreateCookieOptions()
