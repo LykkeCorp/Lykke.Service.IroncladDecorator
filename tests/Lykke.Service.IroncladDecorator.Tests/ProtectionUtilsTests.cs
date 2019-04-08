@@ -40,17 +40,13 @@ namespace Lykke.Service.IroncladDecorator.Tests
         [Fact]
         public void Unprotect_WhenCalledAfterProtectForObject_ReturnsSource()
         {
-            var testValue = "gibberish";
-            var testData = new UserSession
-            {
-                Id = testValue
-            };
+            var testData = new UserSession();
             
             var protectedValue = ProtectionUtils.SerializeAndProtect(testData, _dataProtector);
 
             var unprotected = ProtectionUtils.DeserializeAndUnprotect<UserSession>(protectedValue, _dataProtector);
 
-            unprotected.Id.Should().BeEquivalentTo(testValue);
+            unprotected.Id.Should().BeEquivalentTo(testData.Id);
         }
 
         private IDataProtector MakeDataProtector()

@@ -64,8 +64,7 @@ namespace Lykke.Service.IroncladDecorator.Controllers
             if (userSession.OldLykkeToken == null)
             {
                 var authResult = await _clientSessionsClient.Authenticate(userId, "hobbit");
-                userSession.OldLykkeToken = authResult.SessionToken;
-                userSession.AuthId = authResult.AuthId;
+                userSession.SaveAuthResult(authResult);
                 await _userSessionManager.SetUserSession(userSession);
             }
             
