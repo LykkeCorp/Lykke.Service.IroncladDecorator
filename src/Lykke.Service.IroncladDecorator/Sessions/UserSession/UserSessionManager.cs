@@ -111,7 +111,8 @@ namespace Lykke.Service.IroncladDecorator.Sessions
                 Secure = useHttps,
                 Expires = _clock.UtcNow.Add(_lifetimeSettings.UserSessionCookieLifetime),
                 MaxAge = _lifetimeSettings.UserSessionCookieLifetime,
-                SameSite = SameSiteMode.None
+                SameSite = SameSiteMode.None,
+                IsEssential = true
             });
         }
 
