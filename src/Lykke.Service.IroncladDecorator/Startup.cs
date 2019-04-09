@@ -14,17 +14,33 @@ namespace Lykke.Service.IroncladDecorator
 {
     [UsedImplicitly]
     public class Startup
-    {       
+    {
         private readonly LykkeSwaggerOptions _swaggerOptions = new LykkeSwaggerOptions
         {
             ApiTitle = "IroncladDecorator API",
             ApiVersion = "v1"
         };
 
+        private CorsSettings _corsSettings;
+
+        private const string AllowSpecificOrigins = "AllowSpecificOrigins";
+
         [UsedImplicitly]
         public IServiceProvider ConfigureServices(IServiceCollection services)
         {
             services.AddTransient<CustomOpenIdConnectEvents>();
+
+            services.AddCors(options =>
+            {
+                options.AddPolicy(AllowSpecificOrigins,
+                    builder =>
+                    {
+                        builder.WithOrigins(_corsSettings.CorsOrigins.ToArray());
+                        builder.AllowAnyMethod();
+                        builder.AllowCredentials();
+                        builder.AllowAnyHeader();
+                    });
+            });
 
             return services.BuildServiceProvider<AppSettings>(options =>
             {
@@ -57,7 +73,6 @@ namespace Lykke.Service.IroncladDecorator
                             currentSettings.IroncladDecoratorService.IroncladSettings.IosClient, ironcladAuthority);
 
                     sc.AddHttpContextAccessor();
-
                     sc.AddLykkeAzureBlobDataProtection(
                         currentSettings.IroncladDecoratorService.Db.DataProtectionSettings);
 
@@ -77,6 +92,8 @@ namespace Lykke.Service.IroncladDecorator
                                 ValidateIssuerName = false
                             });
                     });
+
+                    sc.AddCors();
                 };
             });
         }
@@ -84,15 +101,10 @@ namespace Lykke.Service.IroncladDecorator
         [UsedImplicitly]
         public void Configure(IApplicationBuilder app, IHostingEnvironment env)
         {
-            app.UseCors(options =>
-            {
-                //todo: set restrictions
-                options.AllowAnyOrigin();
-                options.AllowAnyHeader();
-                options.AllowCredentials();
-                options.AllowAnyMethod();
-            });
+            _corsSettings = app.ApplicationServices.GetService<CorsSettings>();
 
+            app.UseCors(AllowSpecificOrigins);
+                
             app.UseAuthentication();
 
             app.UseLykkeConfiguration(options =>
