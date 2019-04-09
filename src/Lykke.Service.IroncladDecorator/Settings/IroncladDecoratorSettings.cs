@@ -9,5 +9,6 @@ namespace Lykke.Service.IroncladDecorator.Settings
         public LifetimeSettings LifetimeSettings { get; set; }
         public IroncladSettings IroncladSettings { get; set; }
         public ValidationSettings ValidationSettings { get; set; }
+        public CorsSettings CorsSettings { get; set; }
     }
 }

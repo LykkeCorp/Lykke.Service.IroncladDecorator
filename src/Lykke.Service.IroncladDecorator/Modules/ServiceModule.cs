@@ -24,6 +24,7 @@ namespace Lykke.Service.IroncladDecorator.Modules
 
         protected override void Load(ContainerBuilder builder)
         {
+            builder.Register(c => _appSettings.CurrentValue.IroncladDecoratorService.CorsSettings);
             builder.Register(c => _appSettings.CurrentValue.IroncladDecoratorService.IroncladSettings);
             builder.Register(c => _appSettings.CurrentValue.IroncladDecoratorService.LifetimeSettings);
             builder.Register(c => _appSettings.CurrentValue.IroncladDecoratorService.ValidationSettings);

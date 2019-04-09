@@ -25,6 +25,10 @@ IroncladDecoratorService:
     settings-key: IroncladDecoratorService-ValidationSettings
     types:
       - Json
+  CorsSettings:
+    settings-key: IroncladDecoratorService-CorsSettings
+    types:
+      - Json
   IroncladSettings:
     IroncladIdp:
       settings-key: IroncladDecoratorService-IroncladSettings-IroncladIdp
