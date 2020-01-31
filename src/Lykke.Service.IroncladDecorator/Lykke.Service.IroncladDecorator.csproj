@@ -25,7 +25,7 @@
     <PackageReference Include="IdentityModel" Version="3.10.6" />
     <PackageReference Include="Lykke.Service.ClientAccount.Client" Version="3.0.11" />
     <PackageReference Include="Lykke.Service.Session.Client" Version="3.0.0" />
-    <PackageReference Include="MessagePack" Version="1.7.3.4" />
+    <PackageReference Include="MessagePack" Version="1.9.3" />
     <PackageReference Include="Microsoft.AspNetCore" Version="2.1.2" />
     <PackageReference Include="Microsoft.AspNetCore.Authentication.Cookies" Version="2.1.2" />
     <PackageReference Include="Microsoft.AspNetCore.Authentication.OpenIdConnect" Version="2.1.2" />
